@@ -1,145 +1,155 @@
 ---
 title: "Introdução"
-description: "Bem-vindo ao Testly, somos a plataforma mais simples para criar e gerenciar testes A/B"
+description: "A/B Testing para quem constrói produto."
 ---
 
 ## O que é o Testly?
 
-O **Testly** é uma plataforma completa de testes A/B que permite que você otimize suas conversões sem precisar ser um especialista em estatística ou programação complexa.
+O **Testly** é uma ferramenta de **experimentação para produtos digitais** criada especialmente para **founders técnicos** e **pequenas equipes de SaaS** que precisam validar decisões de produto com dados reais, sem a complexidade das ferramentas tradicionais de marketing.
+
+Diferente de plataformas focadas em campanhas publicitárias, o Testly foi projetado para quem **vive no código**.
+
+Os experimentos são implementados via SDK, seguem princípios técnicos claros e não impactam a performance da sua aplicação.
 
 <CardGroup cols={2}>
-  <Card title="Fácil de Usar" icon="sparkles">
-    Interface intuitiva para criar experimentos em minutos
+  <Card title="SDK-First" icon="code">
+    Experimentos controlados diretamente no código, não em dashboards genéricos
   </Card>
-  <Card title="SDK Plug-and-Play" icon="plug">
-    Apenas uma linha de código para começar a testar
+  <Card title="Determinístico" icon="shuffle">
+    O mesmo usuário sempre vê a mesma variante. Atribuição baseada no userId
   </Card>
-  <Card title="Resultados em Tempo Real" icon="chart-line">
-    Monitore impressões e conversões instantaneamente
+  <Card title="Resiliente a Falhas" icon="shield-check">
+    Conversões só são registradas quando o backend confirma o sucesso da chamada
   </Card>
-  <Card title="Statistically Sound" icon="calculator">
-    Métricas confiáveis para tomar decisões baseadas em dados
+  <Card title="Performance-Safe" icon="gauge">
+    Zero bloqueio de render. Otimizado para não impactar Core Web Vitals
   </Card>
 </CardGroup>
 
 ---
 
-## Por que usar testes A/B?
+## Por que o Testly existe?
 
-Testes A/B são a forma mais eficaz de melhorar suas conversões de forma mensurável. Em vez de adivinhar o que funciona melhor, você **testa e comprova**.
+Instrumentar experimentos A/B é **chato, manual e repetitivo**. A maioria das ferramentas foi feita para equipes de marketing com dashboards visuais complexos — não para devs que querem testar um título, um botão ou um fluxo rapidamente.
 
-<Accordion title="Exemplo prático">
-  Imagine que você tem um botão de CTA (Call-to-Action) em sua landing page com o texto "Comprar Agora".
+**O Testly resolve isso**: instale o SDK, crie um teste e veja o que performa melhor.
 
-  Você suspeita que "Começar Gratuitamente" pode converter melhor, mas não tem certeza.
+---
 
-  Com o Testly, você:
+## Para quem o Testly foi criado?
 
-  1. Cria duas variantes (A e B)
-  2. O SDK distribui aleatoriamente os visitantes entre as versões
-  3. Você monitora qual versão gera mais conversões
-  4. Toma uma decisão baseada em dados reais, não em suposições
-</Accordion>
+O Testly **não é uma ferramenta de marketing**.
 
-### Benefícios comprovados
+### Ele foi criado para:
 
-<AccordionGroup>
-  <Accordion title="Aumento de conversões" icon="arrow-trend-up">
-    Empresas que fazem testes A/B regularmente veem aumentos de 20-30% em suas taxas de conversão.
-  </Accordion>
-  <Accordion title="Insights sobre seus usuários" icon="lightbulb">
-    Entenda melhor o comportamento e preferências do seu público.
-  </Accordion>
-  <Accordion title="Redução de riscos" icon="chart-pie">
-    Valide mudanças antes de implementá-las para todos os usuários.
-  </Accordion>
-  <Accordion title="ROI mensurável" icon="money-bill-trend-up">
-    Cada teste fornece dados concretos sobre o retorno do investimento.
-  </Accordion>
-</AccordionGroup>
+<Check>
+  Founders técnicos rodando SaaS independentes
+</Check>
+
+<Check>
+  Pequenas equipes de produto (1-10 pessoas)
+</Check>
+
+<Check>
+  Desenvolvedores que precisam de clareza técnica e código limpo
+</Check>
+
+<Check>
+  Times enxutos sem recursos para ferramentas enterprise
+</Check>
+
+Se você tem um produto rodando, usuários ativos e quer entender o que converte melhor **sem gastar dias configurando dashboards** — o Testly é pra você.
 
 ---
 
 ## Como funciona?
 
-O Testly torna o processo de teste A/B extremamente simples:
-
 <Steps>
-  <Step title="Crie sua conta">
-    Registre-se gratuitamente na plataforma Testly em poucos segundos.
+  <Step title="Instale o SDK">
+    Adicione o Testly ao seu projeto React:
+
+    ```bash
+    npm install @testly/react
+    ```
   </Step>
-  <Step title="Configure seu experimento">
-    No dashboard, crie um novo experimento e defina suas variantes (A, B, C...).
+  <Step title="Configure o Provider">
+    Envolva sua aplicação com o TestlyProvider:
 
-    Cada variante pode ter:
-
-    - HTML customizado
-    - CSS personalizado
-    - JavaScript interativo
+    ```tsx
+    import { TestlyProvider } from '@testly/react';
+    
+    function App() {
+      return (
+        <TestlyProvider apiKey="YOUR_API_KEY">
+          <Main />
+        </TestlyProvider>
+      );
+    }
+    ```
   </Step>
-  <Step title="Implemente o SDK">
-    Adicione uma única linha de código no seu site:
+  <Step title="Crie um experimento">
+    Use o hook useExperiment para renderizar variantes:
 
-    ```html
-    <script src="https://testly/flow.js?experimentId=SEU_ID&elementId=container&apiKey=SUA_KEY"></script>
+    ```tsx
+    import { useExperiment } from '@testly/react';
+    
+    export function HeroBanner() {
+      const { variant, convert } = useExperiment('homepage-hero-v2');
+    
+      return (
+        <div>
+          {variant === 'variant-b' ? (
+            <button onClick={() => convert('clicked_cta')}>
+              Comece Grátis (Variante B)
+            </button>
+          ) : (
+            <button onClick={() => convert('clicked_cta')}>
+              Experimente Agora (Variante A)
+            </button>
+          )}
+        </div>
+      );
+    }
     ```
   </Step>
   <Step title="Monitore os resultados">
-    Acompanhe em tempo real:
+    Acesse o dashboard do Testly para ver:
 
-    - **Impressões**: quantas pessoas viram cada variante
-    - **Conversões**: quantas pessoas clicaram/converteram
-    - **Taxa de conversão**: porcentagem de conversão por variante
+    - **Impressões**: quantos usuários viram cada variante
+    - **Conversões**: quantos usuários realizaram a ação desejada
+    - **Taxa de conversão**: qual variante está performando melhor
   </Step>
   <Step title="Tome decisões baseadas em dados">
-    Quando tiver significância estatística, implemente a variante vencedora para 100% dos usuários.
+    Quando tiver significância estatística, implemente a variante vencedora para 100% dos usuários
   </Step>
 </Steps>
 
 ---
 
-## Arquitetura do Sistema
-
-Entenda como o Testly funciona por baixo dos panos:
-
-```mermaid
-graph LR
-    A[Visitante] --> B[Seu Site]
-    B --> C[Testly SDK]
-    C --> D[API Testly]
-    D --> E[Seleciona Variante]
-    E --> F[Renderiza no Site]
-    F --> G[Registra Impressão]
-    A --> H[Clica na Variante]
-    H --> I[Registra Conversão]
-    I --> J[Dashboard Atualizado]
-```
-
-### Fluxo detalhado
+### Fluxo Detalhado
 
 <Tabs>
   <Tab title="Primeira Visita">
-    1. **Usuário acessa a página**: O visitante entra no seu site pela primeira vez
-    2. **SDK carrega**: O script do Testly é executado
-    3. **Chamada à API**: SDK solicita uma variante para o experimento
-    4. **Seleção aleatória**: API escolhe uma variante de forma aleatória e uniforme
-    5. **Armazenamento local**: SDK salva a variante no `localStorage` do navegador
-    6. **Renderização**: Variante é injetada no elemento especificado
-    7. **Registro de impressão**: API registra que o usuário viu essa variante
-    8. **ID persistente**: Um `userId` único é gerado e armazenado localmente
+    1. **Usuário acessa a página**: O visitante entra no seu app pela primeira vez
+    2. **SDK executa**: Hook `useExperiment('experiment-id')` é executado
+    3. **API consulta**: Verifica se o usuário já tem uma variante atribuída
+    4. **Atribuição determinística**: Se não tem, atribui uma variante baseada no `userId`
+    5. **Renderização**: SDK renderiza a variante
+    6. **Impressão automática**: SDK registra a impressão automaticamente
+    7. **Cache local**: Variante é salva no cache para próximas visitas
   </Tab>
   <Tab title="Visitas Subsequentes">
-    1. **Usuário retorna**: O mesmo visitante volta ao site
-    2. **SDK verifica cache**: Busca a variante armazenada no `localStorage`
-    3. **Mesma experiência**: SDK renderiza a mesma variante anterior
-    4. **Sem nova impressão**: Não registra impressão duplicada
+    1. **Usuário retorna**: O mesmo visitante volta ao app
+    2. **SDK verifica cache**: Busca a variante armazenada localmente
+    3. **Mesma experiência**: SDK renderiza a **mesma variante** anterior
+    4. **Sem nova impressão**: Não registra impressão duplicada (dedupe automático)
     5. **Consistência**: Usuário vê sempre a mesma variante durante todo o experimento
   </Tab>
   <Tab title="Conversão">
-    1. **Ação do usuário**: Visitante clica na variante renderizada
-    2. **Evento capturado**: SDK detecta o clique no elemento
-    3. **Registro de conversão**: API registra a conversão para aquela variante
-    4. **Atualização em tempo real**: Dashboard atualiza as métricas instantaneamente
+    1. **Ação do usuário**: Visitante clica no elemento ou realiza ação
+    2. **Chamada convert()**: Sua aplicação chama `convert('event_name')`
+    3. **Validação**: API valida e registra a conversão
+    4. **Atualização em tempo real**: Dashboard atualiza métricas instantaneamente
     5. **Cálculo automático**: Taxa de conversão é recalculada
   </Tab>
 </Tabs>
@@ -150,33 +160,30 @@ graph LR
 
 ### Experimento
 
-Um **experimento** é o container principal onde você configura seu teste A/B. Cada experimento possui:
+Um **experimento** é o container onde você configura o teste A/B. Cada experimento possui:
 
-- **ID único**: Identificador do experimento
-- **Nome**: Título descritivo
-- **Status**: Ativo ou Inativo
-- **Variantes**: As diferentes versões que serão testadas
+- **ID único**: Identificador do experimento (ex: `homepage-hero-v2`)
+- **Variantes**: Versões diferentes que serão testadas (A, B, C...)
+- **Status**: Ativo ou inativo
 
 ### Variante
 
-Uma **variante** é cada versão diferente que será testada no experimento:
+Uma **variante** é cada versão testada no experimento:
 
-- **Variante A (Controle)**: Versão original/atual
-- **Variante B, C, D...**: Versões alternativas
+- **Controle (A)**: Versão original
+- **Tratamento (B, C, D...)**: Versões alternativas
 
-Cada variante contém:
-
-- **HTML**: Estrutura do elemento
-- **CSS**: Estilos personalizados (opcional)
-- **JavaScript**: Comportamento interativo (opcional)
+No código, você decide o que renderizar baseado no valor de `variant`.
 
 <Tip>
   O ideal é criar de 2 a 4 variantes por experimento. Muitas variantes podem diluir seus resultados e exigir muito mais tráfego para atingir significância estatística.
 </Tip>
 
-### Impressão
+### Impressão (Auto-tracked)
 
-Uma **impressão** é registrada quando um usuário vê uma variante pela primeira vez. O SDK garante que:
+Uma **impressão** é registrada **automaticamente** quando o hook `useExperiment` é executado pela primeira vez para aquele usuário. Você não precisa fazer nada — o SDK cuida disso.
+
+O SDK garante que:
 
 - Apenas a primeira visualização é contada
 - Recarregamentos de página não geram novas impressões
@@ -184,11 +191,38 @@ Uma **impressão** é registrada quando um usuário vê uma variante pela primei
 
 ### Conversão
 
-Uma **conversão** ocorre quando o usuário executa a ação desejada - geralmente um clique no elemento renderizado.
+Uma **conversão** ocorre quando o usuário executa a ação desejada. Você decide **quando** chamar a função `convert()`:
 
-<Note>
-  Atualmente, o Testly rastreia conversões através de cliques nos elementos renderizados. Suporte para eventos personalizados está em desenvolvimento.
-</Note>
+```tsx
+const { convert } = useExperiment('pricing-test');
+
+<button onClick={() => convert('plan_selected')}>
+  Selecionar Plano
+</button>
+```
+
+#### Conversões Globais vs Específicas
+
+| Tipo           | Hook              | Quando usar                                                                    |
+| -------------- | ----------------- | ------------------------------------------------------------------------------ |
+| **Global**     | `useConversion()` | Ações genéricas que afetam todos os experimentos ativos (ex: cadastro, compra) |
+| **Específica** | `useExperiment()` | Ações diretamente relacionadas ao experimento (ex: clique no botão testado)    |
+
+<Accordion title="Exemplo de conversão global">
+  ```tsx
+  import { useConversion } from '@testly/react';
+  
+  function CheckoutButton() {
+    const trackGlobal = useConversion();
+    
+    return (
+      <button onClick={() => trackGlobal('purchase_completed')}>
+        Finalizar Compra
+      </button>
+    );
+  }
+  ```
+</Accordion>
 
 ### Taxa de Conversão
 
@@ -202,42 +236,100 @@ Esta métrica indica qual variante está performando melhor.
 
 ---
 
-## Casos de Uso
+## Casos de Uso Reais
 
-O Testly é perfeito para testar diversos elementos do seu site:
+O Testly é perfeito para testar diversos elementos do seu produto:
 
 <CardGroup cols={2}>
-  <Card title="Botões de CTA" icon="hand-pointer">
+  <Card title="CTAs e Botões" icon="hand-pointer">
     Teste textos, cores, tamanhos e posicionamento de call-to-actions
   </Card>
-  <Card title="Headlines" icon="heading">
-    Descubra qual título gera mais engajamento e conversões
+  <Card title="Headlines e Títulos" icon="heading">
+    Descubra qual mensagem gera mais cliques e conversões
   </Card>
-  <Card title="Imagens" icon="image">
-    Compare diferentes imagens de produto ou hero sections
+  <Card title="Hero Sections" icon="image">
+    Compare diferentes imagens, vídeos e layouts de hero
   </Card>
   <Card title="Formulários" icon="list-check">
-    Otimize campos, labels e botões de envio
+    Otimize número de campos, labels e copy dos formulários
   </Card>
-  <Card title="Pricing" icon="dollar-sign">
+  <Card title="Pricing e Planos" icon="dollar-sign">
     Teste diferentes estruturas de preço e ofertas
   </Card>
   <Card title="Social Proof" icon="users">
-    Compare depoimentos, badges e elementos de confiança
+    Compare depoimentos, badges de confiança e reviews
   </Card>
-  <Card title="Layouts" icon="table-cells">
-    Teste diferentes disposições de elementos na página
+  <Card title="Fluxos de Onboarding" icon="route">
+    Teste sequências de etapas e copy do onboarding
   </Card>
-  <Card title="Copy" icon="pen">
+  <Card title="Copy e Mensagens" icon="pen">
     Otimize textos de descrição e proposta de valor
   </Card>
 </CardGroup>
 
 ---
 
+## Configuração Avançada
+
+### Debug Mode
+
+Ative logs detalhados durante o desenvolvimento:
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: process.env.NODE_ENV === 'development'
+  }}
+>
+```
+
+Você verá logs como:
+
+- `✅ Conversion recorded` — Conversão registrada com sucesso
+- `❌ TRACKING BLOCKED: Missing experiment ID` — IDs ausentes (problema de configuração)
+- `⚠️ API ERROR: Network timeout` — Detalhes sobre falhas de tracking
+
+### Deduplicação de Conversões
+
+Por padrão, o SDK evita registrar conversões duplicadas na mesma sessão:
+
+```tsx
+config={{
+  dedupConversions: true // Padrão
+}}
+```
+
+### Fallback para Erros
+
+Sempre implemente tratamento de erro para garantir uma experiência resiliente:
+
+```tsx
+const { variant, loading, error } = useExperiment('hero-test');
+
+if (loading) return <Skeleton />;
+if (error) return <OriginalHero />; // Fallback seguro
+
+return <div>{/* Renderiza variante */}</div>;
+```
+
+<Warning>
+  Sempre implemente fallbacks. Isso garante que seu produto continue funcionando mesmo se a API do Testly estiver fora do ar.
+</Warning>
+
+---
+
 ## Requisitos Técnicos
 
 <AccordionGroup>
+  <Accordion title="Frameworks Suportados" icon="code">
+    - ✅ React 16.8+ (com hooks)
+    - ✅ Next.js
+    - ✅ Remix
+    - ✅ Gatsby
+    - ⏳ Vue.js (em desenvolvimento)
+    - ⏳ Svelte (em desenvolvimento)
+  </Accordion>
   <Accordion title="Navegadores Suportados" icon="browser">
     - Chrome 90+
     - Firefox 88+
@@ -245,32 +337,17 @@ O Testly é perfeito para testar diversos elementos do seu site:
     - Edge 90+
     - Opera 76+
 
-    O SDK utiliza APIs modernas do JavaScript e localStorage.
-  </Accordion>
-  <Accordion title="Frameworks Compatíveis" icon="code">
-    - HTML/CSS/JavaScript puro
-    - React 16.8+ (com hooks)
-    - Vue.js 2 e 3
-    - Angular 10+
-    - Next.js
-    - Nuxt.js
-    - Qualquer framework que permita inserção de scripts
-  </Accordion>
-  <Accordion title="Sistemas de Tag Management" icon="tags">
-    - Google Tag Manager
-    - Adobe Launch
-    - Segment
-    - Tealium
+    O SDK utiliza APIs modernas do JavaScript.
   </Accordion>
   <Accordion title="Hospedagem" icon="server">
     Funciona em qualquer tipo de hospedagem:
 
-    - Sites estáticos
-    - WordPress
-    - Shopify
-    - Webflow
-    - Custom applications
+    - Vercel
+    - Netlify
+    - AWS
+    - Custom servers
     - Single Page Applications (SPAs)
+    - Server-Side Rendered (SSR)
   </Accordion>
 </AccordionGroup>
 
@@ -286,7 +363,7 @@ O Testly é perfeito para testar diversos elementos do seu site:
     Em conformidade com regulamentações de privacidade
   </Card>
   <Card title="API Keys Seguras" icon="key">
-    Autenticação robusta via chaves únicas
+    Autenticação por chave única. Nunca exponha em código público
   </Card>
   <Card title="HTTPS Only" icon="lock">
     Todas as comunicações são criptografadas
@@ -294,7 +371,7 @@ O Testly é perfeito para testar diversos elementos do seu site:
 </CardGroup>
 
 <Warning>
-  Nunca exponha sua API Key em código público (GitHub, fóruns, etc.). Trate-a como uma senha.
+  **Importante**: Nunca exponha sua API Key em código público (GitHub, fóruns, etc.). Trate-a como uma senha.
 </Warning>
 
 ---
@@ -303,15 +380,40 @@ O Testly é perfeito para testar diversos elementos do seu site:
 
 Queremos ser transparentes sobre as limitações da versão atual:
 
-- **Tráfego mínimo recomendado**: 1.000+ visitantes/mês por experimento
-- **Eventos customizados**: Ainda não suportado (em desenvolvimento)
-- **Testes multivariados**: Limitado a A/B/C/D (máximo 4 variantes)
+- **Tráfego mínimo recomendado**: 500+ visitantes/mês por experimento
+- **Frameworks**: Apenas React no momento (Vue e Svelte em breve)
+- **Eventos customizados**: Suportado via `convert('event_name')`
 - **Segmentação avançada**: Não disponível ainda
 - **Integração analytics**: Em desenvolvimento
 
 <Note>
-  Estamos constantemente melhorando a plataforma. Confira nosso [roadmap](#) para ver o que está por vir!
+  Estamos constantemente melhorando a plataforma. Quer sugerir features? Entre em contato no Discord!
 </Note>
+
+---
+
+## Pricing
+
+### Free
+
+- ✅ Até 10.000 eventos/mês
+- ✅ Experimentos ilimitados
+- ✅ Variantes ilimitadas
+- ✅ Suporte via comunidade
+
+### Pro — \$29/mês
+
+- ✅ Até 100.000 eventos/mês
+- ✅ Tudo do plano Free
+- ✅ Suporte prioritário
+- ✅ Exportação de dados
+
+### Enterprise — Custom
+
+- ✅ Eventos ilimitados
+- ✅ SLA garantido
+- ✅ Suporte dedicado
+- ✅ Onboarding personalizado
 
 ---
 
@@ -321,16 +423,18 @@ Pronto para começar? Siga estes passos:
 
 <Steps>
   <Step title="Crie sua conta">
-    [Registre-se gratuitamente](https://testly.com/signup) na plataforma
+    [Registre-se gratuitamente](https://testly.com/signup) — leva menos de 1 minuto
   </Step>
-  <Step title="Leia o Quickstart">
-    Siga nosso [Guia Rápido de Implementação](/quickstart) para adicionar o SDK
+  <Step title="Instale o SDK">
+    ```bash
+    npm install @testly/react
+    ```
   </Step>
-  <Step title="Crie seu primeiro experimento">
-    Acesse o dashboard e configure suas variantes
+  <Step title="Configure seu primeiro experimento">
+    Siga nosso [Guia de Quickstart](/quickstart) para ter um teste rodando em 5 minutos
   </Step>
-  <Step title="Monitore resultados">
-    Acompanhe métricas em tempo real e tome decisões baseadas em dados
+  <Step title="Monitore os resultados">
+    Acompanhe métricas em tempo real no dashboard
   </Step>
 </Steps>
 
@@ -355,5 +459,9 @@ Pronto para começar? Siga estes passos:
 </CardGroup>
 
 <Tip>
-  Junte-se à nossa [comunidade no Discord](#) para trocar experiências com outros usuários!
+  Junte-se à nossa [comunidade no Discord](#) para trocar experiências com outros founders devs!
 </Tip>
+
+---
+
+**Feito para devs, por devs. 🚀**
