@@ -1,0 +1,657 @@
+---
+title: "useConversion"
+description: "Hook para registrar conversões globais que afetam todos os experimentos ativos"
+---
+
+## Visão Geral
+
+O hook `useConversion` permite registrar conversões que devem ser atribuídas a **todos os experimentos ativos** na página. É ideal para eventos importantes do negócio que você quer rastrear em múltiplos experimentos simultaneamente.
+
+<CardGroup cols={2}>
+  <Card title="Conversão Global" icon="globe">
+    Rastreia para TODOS os experimentos ativos
+  </Card>
+  <Card title="Conversão Específica" icon="bullseye">
+    Rastreia apenas para UM experimento (useExperiment)
+  </Card>
+</CardGroup>
+
+---
+
+## Quando Usar
+
+### ✅ Use `useConversion` quando:
+
+- Você quer rastrear uma ação importante para **todos** os experimentos
+- O evento representa um objetivo global do negócio (compra, cadastro, assinatura)
+- Múltiplos experimentos na mesma página devem ser creditados pelo evento
+- Você está testando elementos de diferentes páginas que levam ao mesmo objetivo
+
+### ❌ Use `useExperiment().convert()` quando:
+
+- A conversão está **diretamente relacionada** ao experimento específico
+- Apenas um experimento deve ser creditado pela ação
+- Você quer mais precisão e menos "ruído" nos dados
+
+---
+
+## Comparação Rápida
+
+| Cenário | Hook Recomendado | Motivo |
+|---------|------------------|--------|
+| Clique no botão testado | `useExperiment().convert()` | Ação específica do experimento |
+| Compra finalizada | `useConversion()` | Evento global importante |
+| Cadastro completado | `useConversion()` | Objetivo de negócio |
+| Form do hero enviado | `useExperiment().convert()` | Relacionado ao hero test |
+| Trial iniciado | `useConversion()` | Múltiplos experimentos contribuem |
+| Clique em CTA de pricing | `useExperiment().convert()` | Específico do teste de pricing |
+
+---
+
+## Uso Básico
+
+```tsx
+import { useConversion } from '@testly/react';
+
+function CheckoutButton() {
+  const trackConversion = useConversion();
+
+  const handleCheckout = async () => {
+    // Registra conversão para TODOS os experimentos ativos
+    await trackConversion('purchase_completed');
+    
+    // Prosseguir com lógica de checkout
+    router.push('/thank-you');
+  };
+
+  return (
+    <button onClick={handleCheckout}>
+      Finalizar Compra
+    </button>
+  );
+}
+```
+
+---
+
+## Assinatura
+
+```typescript
+const trackConversion = useConversion();
+```
+
+### Retorno
+
+```typescript
+type TrackConversion = (eventName: string) => Promise<void>;
+```
+
+O hook retorna uma **função** que você chama quando quiser registrar a conversão.
+
+---
+
+## Exemplos Práticos
+
+### Exemplo 1: Checkout / Compra
+
+```tsx
+'use client';
+
+import { useConversion } from '@testly/react';
+import { useState } from 'react';
+
+export function CheckoutFlow() {
+  const trackConversion = useConversion();
+  const [loading, setLoading] = useState(false);
+
+  const handlePurchase = async () => {
+    setLoading(true);
+    
+    try {
+      // 1. Processar pagamento
+      await processPayment();
+      
+      // 2. Registrar conversão para TODOS os experimentos
+      await trackConversion('purchase_completed');
+      
+      // 3. Redirecionar para página de sucesso
+      window.location.href = '/success';
+    } catch (error) {
+      console.error('Erro no checkout:', error);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="checkout">
+      <h2>Finalizar Compra</h2>
+      <OrderSummary />
+      <button 
+        onClick={handlePurchase}
+        disabled={loading}
+        className="btn-primary"
+      >
+        {loading ? 'Processando...' : 'Confirmar Pagamento'}
+      </button>
+    </div>
+  );
+}
+```
+
+<Note>
+  **Por que global?** Se você está rodando experimentos no hero, no pricing e no checkout simultaneamente, todos devem ser creditados quando uma compra acontece.
+</Note>
+
+### Exemplo 2: Cadastro / Sign Up
+
+```tsx
+'use client';
+
+import { useConversion } from '@testly/react';
+import { useRouter } from 'next/navigation';
+
+export function SignUpForm() {
+  const trackConversion = useConversion();
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      // 1. Criar conta
+      await createAccount({ email, password });
+      
+      // 2. Rastrear conversão globalmente
+      await trackConversion('signup_completed');
+      
+      // 3. Redirecionar para onboarding
+      router.push('/onboarding');
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="signup-form">
+      <h2>Criar Conta Grátis</h2>
+      
+      <input 
+        type="email" 
+        name="email" 
+        placeholder="seu@email.com"
+        required 
+      />
+      
+      <input 
+        type="password" 
+        name="password" 
+        placeholder="Senha segura"
+        required 
+      />
+      
+      <button type="submit" className="btn-primary">
+        Criar Conta
+      </button>
+    </form>
+  );
+}
+```
+
+### Exemplo 3: Trial Iniciado
+
+```tsx
+'use client';
+
+import { useConversion } from '@testly/react';
+
+export function TrialButton() {
+  const trackConversion = useConversion();
+
+  const startTrial = async () => {
+    try {
+      // 1. Criar trial no backend
+      const response = await fetch('/api/trials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'pro' })
+      });
+
+      if (!response.ok) throw new Error('Falha ao criar trial');
+
+      // 2. Rastrear conversão
+      await trackConversion('trial_started');
+
+      // 3. Redirecionar
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('Erro ao iniciar trial:', error);
+      alert('Não foi possível iniciar o trial. Tente novamente.');
+    }
+  };
+
+  return (
+    <button 
+      onClick={startTrial}
+      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
+    >
+      Começar Trial Grátis de 14 Dias
+    </button>
+  );
+}
+```
+
+### Exemplo 4: Download / Lead Magnet
+
+```tsx
+'use client';
+
+import { useConversion } from '@testly/react';
+import { useState } from 'react';
+
+export function LeadMagnetForm() {
+  const trackConversion = useConversion();
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleDownload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+
+    try {
+      // 1. Salvar lead
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      // 2. Rastrear conversão
+      await trackConversion('ebook_downloaded');
+
+      // 3. Mostrar sucesso
+      setSubmitted(true);
+
+      // 4. Iniciar download
+      window.location.href = '/downloads/ebook.pdf';
+    } catch (error) {
+      console.error('Erro ao processar download:', error);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="success-message">
+        ✅ E-book enviado para seu email!
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleDownload} className="lead-form">
+      <h3>Baixe nosso E-book Grátis</h3>
+      <p>Guia completo de experimentação para founders</p>
+      
+      <input 
+        type="email" 
+        name="email" 
+        placeholder="seu@email.com"
+        required 
+      />
+      
+      <button type="submit" className="btn-primary">
+        Baixar Grátis
+      </button>
+    </form>
+  );
+}
+```
+
+---
+
+## Exemplo Completo: Landing Page
+
+Uma landing page com múltiplos experimentos usando conversões globais:
+
+```tsx app/page.tsx
+'use client';
+
+import { useExperiment, useConversion } from '@testly/react';
+
+// Hero Section - Teste de headline
+function HeroSection() {
+  const { variant, convert } = useExperiment('homepage-hero');
+  const trackGlobal = useConversion();
+
+  const headlines = {
+    'control': 'A/B Testing para Founders',
+    'variant-b': 'Valide Ideias com Dados Reais'
+  };
+
+  const handleCTA = () => {
+    // Conversão específica do hero
+    convert('hero_cta_clicked');
+    
+    // Scroll para pricing
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <section className="hero">
+      <h1>{headlines[variant] || headlines.control}</h1>
+      <button onClick={handleCTA}>
+        Começar Grátis
+      </button>
+    </section>
+  );
+}
+
+// Pricing Section - Teste de layout
+function PricingSection() {
+  const { variant, convert } = useExperiment('pricing-layout');
+  const trackGlobal = useConversion();
+
+  const handleSelectPlan = async (plan: string) => {
+    // Conversão específica do pricing
+    await convert('plan_selected');
+    
+    // Conversão GLOBAL (afeta hero + pricing + qualquer outro experimento ativo)
+    await trackGlobal('trial_started');
+    
+    // Redirecionar
+    window.location.href = `/signup?plan=${plan}`;
+  };
+
+  if (variant === 'variant-b') {
+    // Layout de 3 colunas
+    return (
+      <section id="pricing" className="pricing-3-col">
+        <PricingCard plan="Free" onSelect={handleSelectPlan} />
+        <PricingCard plan="Pro" onSelect={handleSelectPlan} featured />
+        <PricingCard plan="Enterprise" onSelect={handleSelectPlan} />
+      </section>
+    );
+  }
+
+  // Layout de 2 colunas
+  return (
+    <section id="pricing" className="pricing-2-col">
+      <PricingCard plan="Free" onSelect={handleSelectPlan} />
+      <PricingCard plan="Pro" onSelect={handleSelectPlan} featured />
+    </section>
+  );
+}
+
+// CTA Final - Teste de copy
+function FinalCTA() {
+  const { variant, convert } = useExperiment('final-cta');
+  const trackGlobal = useConversion();
+
+  const copies = {
+    'control': 'Pronto para começar?',
+    'variant-b': 'Transforme seu produto hoje'
+  };
+
+  const handleClick = async () => {
+    // Conversão específica do CTA
+    await convert('final_cta_clicked');
+    
+    // Conversão GLOBAL
+    await trackGlobal('signup_initiated');
+    
+    window.location.href = '/signup';
+  };
+
+  return (
+    <section className="final-cta">
+      <h2>{copies[variant] || copies.control}</h2>
+      <button onClick={handleClick}>
+        Criar Conta Grátis
+      </button>
+    </section>
+  );
+}
+
+// Página completa
+export default function HomePage() {
+  return (
+    <main>
+      <HeroSection />
+      <Features />
+      <PricingSection />
+      <Testimonials />
+      <FinalCTA />
+    </main>
+  );
+}
+```
+
+**O que acontece neste exemplo:**
+
+1. **Hero test** rastreia cliques específicos no CTA do hero
+2. **Pricing test** rastreia seleção de plano + `trial_started` (global)
+3. **Final CTA test** rastreia cliques específicos + `signup_initiated` (global)
+
+Quando o usuário inicia um trial, **todos os 3 experimentos** são creditados pela conversão `trial_started`.
+
+---
+
+## Conversões Globais vs Específicas
+
+### Cenário: E-commerce
+
+```tsx
+// Página do Produto
+function ProductPage() {
+  const heroTest = useExperiment('product-hero');
+  const reviewsTest = useExperiment('social-proof');
+  const trackGlobal = useConversion();
+
+  const addToCart = async () => {
+    // Específica: qual elemento levou ao add to cart?
+    await heroTest.convert('add_to_cart_clicked');
+    
+    // Não chamar trackGlobal aqui - add to cart não é o objetivo final
+  };
+
+  const goToCheckout = async () => {
+    // Global: objetivo final de negócio
+    await trackGlobal('checkout_initiated');
+    
+    router.push('/checkout');
+  };
+
+  return (
+    <div>
+      <ProductHero variant={heroTest.variant} onAddToCart={addToCart} />
+      <Reviews variant={reviewsTest.variant} />
+      <CheckoutButton onClick={goToCheckout} />
+    </div>
+  );
+}
+```
+
+### Decisão: Quando usar cada um?
+
+| Evento | Tipo | Hook | Motivo |
+|--------|------|------|--------|
+| Ver produto | - | Não rastrear | Não é conversão |
+| Add to cart | Específica | `useExperiment().convert()` | Testar eficácia do hero |
+| Iniciar checkout | Global | `useConversion()` | Objetivo de negócio |
+| Finalizar compra | Global | `useConversion()` | Objetivo final |
+
+---
+
+## Tratamento de Erros
+
+O `useConversion` retorna uma Promise. Sempre trate erros:
+
+```tsx
+const trackConversion = useConversion();
+
+// ✅ Bom - com tratamento de erro
+const handleAction = async () => {
+  try {
+    await trackConversion('event_name');
+    console.log('✅ Conversão registrada');
+  } catch (error) {
+    console.error('❌ Erro ao rastrear conversão:', error);
+    // A ação do usuário continua mesmo se o tracking falhar
+  }
+  
+  // Prosseguir com a ação
+  router.push('/next-page');
+};
+
+// ❌ Ruim - sem tratamento
+const handleAction = async () => {
+  await trackConversion('event_name'); // Pode quebrar a UX se falhar
+  router.push('/next-page');
+};
+```
+
+<Warning>
+  **Importante**: Nunca deixe que falhas no tracking impeçam a ação do usuário. O tracking deve ser não-bloqueante.
+</Warning>
+
+### Padrão Recomendado
+
+```tsx
+const handleCriticalAction = async () => {
+  // 1. Executar ação crítica primeiro
+  const result = await performCriticalAction();
+  
+  // 2. Rastrear conversão (não-bloqueante)
+  trackConversion('action_completed').catch(error => {
+    console.error('Tracking failed:', error);
+    // Reportar para sistema de monitoramento, mas não quebrar UX
+  });
+  
+  // 3. Continuar fluxo
+  return result;
+};
+```
+
+---
+
+## Deduplicação
+
+Por padrão, o Testly previne conversões duplicadas na mesma sessão:
+
+```tsx
+const trackConversion = useConversion();
+
+// Primeira chamada: ✅ Registrada
+await trackConversion('purchase_completed');
+
+// Segunda chamada (mesma sessão): ❌ Ignorada (dedupe)
+await trackConversion('purchase_completed');
+```
+
+Para desativar deduplicação (não recomendado):
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    dedupConversions: false // Permite múltiplas conversões do mesmo evento
+  }}
+>
+```
+
+<Tip>
+  **Recomendação**: Mantenha `dedupConversions: true` (padrão) para evitar inflar artificialmente seus números.
+</Tip>
+
+---
+
+## Boas Práticas
+
+### 1. Use nomes descritivos
+
+```tsx
+// ✅ Bom - claro e específico
+trackConversion('trial_started')
+trackConversion('purchase_completed')
+trackConversion('ebook_downloaded')
+
+// ❌ Ruim - genérico e ambíguo
+trackConversion('conversion')
+trackConversion('success')
+trackConversion('done')
+```
+
+### 2. Seja consistente com nomenclatura
+
+```tsx
+// ✅ Bom - padrão consistente (snake_case + verbo no passado)
+trackConversion('trial_started')
+trackConversion('purchase_completed')
+trackConversion('signup_initiated')
+
+// ❌ Ruim - sem padrão
+trackConversion('TrialStart')
+trackConversion('purchase-done')
+trackConversion('signUp')
+```
+
+### 3. Documente eventos importantes
+
+```tsx
+/**
+ * Eventos de conversão global:
+ * 
+ * - trial_started: Usuário iniciou trial de 14 dias
+ * - purchase_completed: Compra finalizada com sucesso
+ * - signup_completed: Cadastro completo (email verificado)
+ * - subscription_activated: Assinatura mensal/anual ativada
+ */
+const CONVERSION_EVENTS = {
+  TRIAL_STARTED: 'trial_started',
+  PURCHASE_COMPLETED: 'purchase_completed',
+  SIGNUP_COMPLETED: 'signup_completed',
+  SUBSCRIPTION_ACTIVATED: 'subscription_activated'
+} as const;
+
+// Uso
+trackConversion(CONVERSION_EVENTS.TRIAL_STARTED);
+```
+
+### 4. Não abuse de conversões globais
+
+```tsx
+// ✅ Bom - apenas eventos críticos de negócio
+trackConversion('purchase_completed')    // Evento crítico
+trackConversion('subscription_started')  // Evento crítico
+
+// ❌ Ruim - rastreando tudo como global
+trackConversion('button_clicked')        // Use useExperiment().convert()
+trackConversion('page_viewed')           // Não é conversão
+trackConversion('scroll_50_percent')     // Use analytics separado
+```
+
+---
+
+## Debug
+
+Ative o modo debug para ver logs de conversões globais:
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: true
+  }}
+>
+```
+
+**Logs que você verá:**
+
+```
+[Testly] 🌍 Global conversion tracked: trial_started
+[Testly] 📊 Experiments affected: homepage-hero, pricing-layout, final-cta
+[Testly] ✅ Conversion recorded successfully
