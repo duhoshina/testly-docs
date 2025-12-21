@@ -1,0 +1,550 @@
+---
+title: "Configuração"
+description: "Opções avançadas de configuração do TestlyProvider"
+---
+
+## Visão Geral
+
+O `TestlyProvider` aceita um objeto `config` opcional que permite customizar o comportamento do SDK.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: boolean,
+    dedupConversions: boolean,
+    baseUrl: string,
+    timeout: number,
+    retryAttempts: number,
+    cacheEnabled: boolean
+  }}
+>
+  {children}
+</TestlyProvider>
+```
+
+---
+
+## Opções de Configuração
+
+### debug
+
+**Tipo:** `boolean`  
+**Padrão:** `false`  
+**Descrição:** Ativa logs detalhados no console para facilitar debugging.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: process.env.NODE_ENV === 'development'
+  }}
+>
+```
+
+**Logs que você verá:**
+
+```
+[Testly] ✅ Experiment loaded: homepage-hero-test
+[Testly] 👤 User assigned to: variant-b
+[Testly] 📊 Impression recorded
+[Testly] 🎯 Conversion recorded: cta_clicked
+[Testly] ❌ API ERROR: Network timeout
+```
+
+<Tip>
+  **Recomendação**: Sempre ative em desenvolvimento e desative em produção para não poluir o console dos usuários.
+</Tip>
+
+---
+
+### dedupConversions
+
+**Tipo:** `boolean`  
+**Padrão:** `true`  
+**Descrição:** Previne que o mesmo evento de conversão seja registrado múltiplas vezes na mesma sessão.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    dedupConversions: true // Padrão
+  }}
+>
+```
+
+**Comportamento:**
+
+```tsx
+const { convert } = useExperiment('test');
+
+// Primeira chamada: ✅ Registrada
+await convert('button_clicked');
+
+// Segunda chamada (mesma sessão): ❌ Ignorada automaticamente
+await convert('button_clicked');
+```
+
+**Quando desativar:**
+
+```tsx
+config={{
+  dedupConversions: false // Permite conversões duplicadas
+}}
+```
+
+Use `false` apenas se você precisa rastrear eventos repetíveis (ex: múltiplos cliques em "adicionar ao carrinho").
+
+<Warning>
+  **Cuidado**: Desativar deduplicação pode inflar artificialmente suas métricas. Use com cautela.
+</Warning>
+
+---
+
+### baseUrl
+
+**Tipo:** `string`  
+**Padrão:** `"https://api.testly.com/v1"`  
+**Descrição:** URL customizada da API (útil para testes locais ou ambiente staging).
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    baseUrl: process.env.NEXT_PUBLIC_TESTLY_API_URL || 'https://api.testly.com/v1'
+  }}
+>
+```
+
+**Casos de uso:**
+
+- Testar contra ambiente de staging
+- Desenvolvimento local com API mock
+- Proxy reverso customizado
+
+```bash .env.local
+# Produção
+NEXT_PUBLIC_TESTLY_API_URL=https://api.testly.com/v1
+
+# Staging
+NEXT_PUBLIC_TESTLY_API_URL=https://staging-api.testly.com/v1
+
+# Local
+NEXT_PUBLIC_TESTLY_API_URL=http://localhost:3001/api/v1
+```
+
+---
+
+### timeout
+
+**Tipo:** `number` (milliseconds)  
+**Padrão:** `5000` (5 segundos)  
+**Descrição:** Tempo máximo de espera por resposta da API antes de timeout.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    timeout: 3000 // 3 segundos
+  }}
+>
+```
+
+**Recomendações:**
+
+| Conexão | Timeout Recomendado |
+|---------|---------------------|
+| Rápida (fibra) | 3000ms (3s) |
+| Média (4G) | 5000ms (5s) - padrão |
+| Lenta (3G) | 8000ms (8s) |
+
+<Note>
+  Se a API não responder dentro do timeout, o SDK retornará erro e você deve ter um fallback implementado.
+</Note>
+
+---
+
+### retryAttempts
+
+**Tipo:** `number`  
+**Padrão:** `3`  
+**Descrição:** Número de tentativas em caso de falha de rede.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    retryAttempts: 2 // Tenta 2 vezes antes de falhar
+  }}
+>
+```
+
+**Estratégia de retry:**
+
+O SDK usa **backoff exponencial**:
+- 1ª tentativa: imediata
+- 2ª tentativa: após 1s
+- 3ª tentativa: após 2s
+- 4ª tentativa: após 4s
+
+```
+Tentativa 1: Falhou → Aguarda 1s
+Tentativa 2: Falhou → Aguarda 2s
+Tentativa 3: Falhou → Aguarda 4s
+Tentativa 4: Falhou → Retorna erro
+```
+
+**Quando ajustar:**
+
+```tsx
+// Conexões instáveis - mais retries
+config={{ retryAttempts: 5 }}
+
+// Performance crítica - menos retries
+config={{ retryAttempts: 1 }}
+```
+
+---
+
+### cacheEnabled
+
+**Tipo:** `boolean`  
+**Padrão:** `true`  
+**Descrição:** Ativa cache local (localStorage) para variantes atribuídas.
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    cacheEnabled: true // Padrão
+  }}
+>
+```
+
+**Como funciona:**
+
+1. Primeira visita: API atribui variante → salva no cache
+2. Próximas visitas: Lê do cache → não chama API
+
+**Quando desativar:**
+
+```tsx
+config={{
+  cacheEnabled: false // Sempre busca da API
+}}
+```
+
+Use `false` apenas para testes ou se você gerencia cache de outra forma.
+
+<Warning>
+  **Atenção**: Desativar cache aumenta significativamente o número de chamadas à API e pode afetar performance.
+</Warning>
+
+---
+
+## Configurações por Ambiente
+
+### Desenvolvimento
+
+```tsx
+<TestlyProvider 
+  apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+  config={{
+    debug: true,                    // Logs detalhados
+    timeout: 8000,                  // Mais tempo (rede local pode ser lenta)
+    retryAttempts: 2,               // Menos retries (falhas rápidas)
+    baseUrl: 'http://localhost:3001/api/v1' // API local (opcional)
+  }}
+>
+```
+
+### Staging
+
+```tsx
+<TestlyProvider 
+  apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+  config={{
+    debug: true,                    // Logs para QA
+    timeout: 5000,
+    retryAttempts: 3,
+    baseUrl: 'https://staging-api.testly.com/v1'
+  }}
+>
+```
+
+### Produção
+
+```tsx
+<TestlyProvider 
+  apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+  config={{
+    debug: false,                   // Sem logs
+    timeout: 5000,
+    retryAttempts: 3,
+    dedupConversions: true,
+    cacheEnabled: true
+  }}
+>
+```
+
+---
+
+## Configuração Dinâmica
+
+Você pode ajustar a config baseado em condições:
+
+```tsx
+const getTestlyConfig = () => {
+  const isDev = process.env.NODE_ENV === 'development';
+  const isSlowConnection = navigator?.connection?.effectiveType === '3g';
+
+  return {
+    debug: isDev,
+    timeout: isSlowConnection ? 8000 : 5000,
+    retryAttempts: isSlowConnection ? 5 : 3,
+    dedupConversions: true,
+    cacheEnabled: true
+  };
+};
+
+<TestlyProvider 
+  apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+  config={getTestlyConfig()}
+>
+```
+
+---
+
+## Configuração Completa Recomendada
+
+### Next.js
+
+```tsx app/layout.tsx
+import { TestlyProvider } from '@testly/react';
+
+const testlyConfig = {
+  debug: process.env.NODE_ENV === 'development',
+  timeout: 5000,
+  retryAttempts: 3,
+  dedupConversions: true,
+  cacheEnabled: true
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="pt-BR">
+      <body>
+        <TestlyProvider 
+          apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY!}
+          config={testlyConfig}
+        >
+          {children}
+        </TestlyProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### React (Vite)
+
+```tsx src/App.tsx
+import { TestlyProvider } from '@testly/react';
+
+const testlyConfig = {
+  debug: import.meta.env.DEV,
+  timeout: 5000,
+  retryAttempts: 3,
+  dedupConversions: true,
+  cacheEnabled: true
+};
+
+function App() {
+  return (
+    <TestlyProvider 
+      apiKey={import.meta.env.VITE_TESTLY_API_KEY}
+      config={testlyConfig}
+    >
+      <Routes />
+    </TestlyProvider>
+  );
+}
+```
+
+---
+
+## Performance Tips
+
+### 1. Ative cache
+
+```tsx
+config={{
+  cacheEnabled: true // Reduz chamadas à API
+}}
+```
+
+### 2. Ajuste timeout baseado em analytics
+
+Se 95% dos seus usuários têm conexão rápida:
+
+```tsx
+config={{
+  timeout: 3000 // Mais agressivo
+}}
+```
+
+### 3. Reduza retries em produção
+
+```tsx
+config={{
+  retryAttempts: 2 // Falha mais rápido
+}}
+```
+
+### 4. Use baseUrl com CDN
+
+Se você tem um proxy CDN na frente da API:
+
+```tsx
+config={{
+  baseUrl: 'https://cdn.example.com/testly-proxy'
+}}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Config não está sendo aplicada" icon="circle-xmark">
+    **Verifique**:
+    - Config está dentro do objeto correto?
+    - Provider está no nível correto da árvore?
+    - Você reiniciou o servidor após mudar?
+
+    ```tsx
+    // ✅ Correto
+    <TestlyProvider apiKey="..." config={{ debug: true }}>
+
+    // ❌ Errado
+    <TestlyProvider apiKey="..." debug={true}>
+    ```
+  </Accordion>
+
+  <Accordion title="Debug logs não aparecem" icon="bug">
+    **Checklist**:
+    - `debug: true` está configurado?
+    - Você está olhando o console certo (navegador, não terminal)?
+    - Filtros do DevTools estão desativados?
+
+    ```tsx
+    config={{
+      debug: process.env.NODE_ENV === 'development' // Confira isso
+    }}
+    ```
+  </Accordion>
+
+  <Accordion title="Timeout muito curto/longo" icon="clock">
+    **Recomendações**:
+
+    | Cenário | Timeout |
+    |---------|---------|
+    | Wi-Fi rápido | 3000ms |
+    | 4G/5G | 5000ms |
+    | 3G | 8000ms |
+    | Offline-first | 10000ms |
+
+    Analise seus usuários e ajuste:
+
+    ```tsx
+    config={{
+      timeout: 5000 // Balanço entre performance e confiabilidade
+    }}
+    ```
+  </Accordion>
+
+  <Accordion title="Cache causando problemas" icon="database">
+    **Limpar cache manualmente**:
+
+    ```tsx
+    // Limpar cache de um experimento específico
+    localStorage.removeItem('testly-experiment-homepage-hero');
+
+    // Limpar todo cache do Testly
+    Object.keys(localStorage)
+      .filter(key => key.startsWith('testly-'))
+      .forEach(key => localStorage.removeItem(key));
+    ```
+
+    Ou desative temporariamente:
+
+    ```tsx
+    config={{
+      cacheEnabled: false // Apenas para debug
+    }}
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Referência Completa
+
+```typescript
+interface TestlyConfig {
+  /**
+   * Ativa logs detalhados no console
+   * @default false
+   */
+  debug?: boolean;
+
+  /**
+   * Previne conversões duplicadas na mesma sessão
+   * @default true
+   */
+  dedupConversions?: boolean;
+
+  /**
+   * URL base da API
+   * @default "https://api.testly.com/v1"
+   */
+  baseUrl?: string;
+
+  /**
+   * Timeout em milliseconds
+   * @default 5000
+   */
+  timeout?: number;
+
+  /**
+   * Número de tentativas em caso de falha
+   * @default 3
+   */
+  retryAttempts?: number;
+
+  /**
+   * Ativa cache local (localStorage)
+   * @default true
+   */
+  cacheEnabled?: boolean;
+}
+```
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="useExperiment" icon="flask" href="/sdk/use-experiment">
+    Hook principal para experimentos
+  </Card>
+  <Card title="useConversion" icon="chart-line" href="/sdk/use-conversion">
+    Hook para conversões globais
+  </Card>
+  <Card title="Debugging" icon="bug" href="/guides/debugging">
+    Guia completo de troubleshooting
+  </Card>
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Metodologias de experimentação
+  </Card>
+</CardGroup>
