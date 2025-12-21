@@ -4,7 +4,7 @@
   "name": "Testly",
   "colors": {
     "primary": "#10B981",
-    "light": "#D1FAE5",
+    "light": "#10B981",
     "dark": "#10B981"
   },
   "favicon": "/favicon.svg",
