@@ -16,13 +16,13 @@
     "links": [
       {
         "label": "Dashboard",
-        "href": "https://testly.com/dashboard"
+        "href": "https://app.testly.com/dashboard"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Criar Conta Grátis",
-      "href": "https://testly.com/signup"
+      "href": "https://testly.com"
     }
   },
   "navigation": {
