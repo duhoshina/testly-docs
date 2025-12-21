@@ -1,33 +1,489 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "Visão Geral da API"
+description: "Documentação completa da API REST do Testly para integração customizada"
 ---
 
+## Introdução
+
+A API REST do Testly permite que você integre experimentação A/B em qualquer aplicação, independente do framework ou linguagem.
+
+### Quando usar a API diretamente?
+
+- ✅ Você está usando um framework não suportado (Vue, Svelte, Angular)
+- ✅ Precisa de integração server-side
+- ✅ Quer construir sua própria camada de abstração
+- ✅ Está migrando de outra ferramenta
+
+### Quando usar o SDK React?
+
+- ✅ Você está usando React, Next.js ou Remix
+- ✅ Quer começar rápido sem configuração
+- ✅ Precisa de gerenciamento automático de estado
+
+<Tip>
+  **Recomendação**: Se você usa React, prefira o [SDK oficial](/sdk/installation). Ele já implementa boas práticas de cache, retry e error handling.
+</Tip>
+
+---
+
+## Base URL
+
+```
+https://api.testly.com/v1
+```
+
+Todas as requisições devem usar HTTPS. HTTP não é suportado.
+
+---
+
+## Autenticação
+
+A API do Testly usa **API Keys** para autenticação. Inclua sua chave no header `Authorization`:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Obter sua API Key
+
+1. Acesse o [dashboard do Testly](https://testly.com/dashboard)
+2. Vá em **Configurações** → **API Keys**
+3. Copie sua chave (começa com `testly_`)
+
+<Warning>
+  **Segurança**: Nunca exponha sua API Key em código client-side público. Use variáveis de ambiente e mantenha-a no servidor quando possível.
+</Warning>
+
+### Exemplo de Requisição
+
+```bash
+curl https://api.testly.com/v1/experiments \
+  -H "Authorization: Bearer testly_abc123xyz..." \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## Rate Limits
+
+| Plano | Limite |
+|-------|--------|
+| **Free** | 100 requisições/minuto |
+| **Pro** | 1.000 requisições/minuto |
+| **Enterprise** | Customizável |
+
+Headers de resposta incluem informações sobre rate limit:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
 <Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
+  Se exceder o limite, você receberá um erro `429 Too Many Requests`. Implemente retry com backoff exponencial.
 </Note>
 
-## Welcome
+---
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Estrutura da Resposta
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+### Sucesso
 
-## Authentication
-
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+Requisições bem-sucedidas retornam JSON com status `2xx`:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+{
+  "success": true,
+  "data": {
+    // Dados da resposta
   }
-]
+}
 ```
+
+### Erro
+
+Erros retornam JSON com status `4xx` ou `5xx`:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "A API Key fornecida é inválida",
+    "details": {}
+  }
+}
+```
+
+---
+
+## Códigos de Status HTTP
+
+| Código | Descrição |
+|--------|-----------|
+| `200 OK` | Requisição bem-sucedida |
+| `201 Created` | Recurso criado com sucesso |
+| `400 Bad Request` | Parâmetros inválidos |
+| `401 Unauthorized` | API Key ausente ou inválida |
+| `403 Forbidden` | Sem permissão para acessar o recurso |
+| `404 Not Found` | Recurso não encontrado |
+| `429 Too Many Requests` | Rate limit excedido |
+| `500 Internal Server Error` | Erro no servidor (contacte suporte) |
+
+---
+
+## Códigos de Erro Comuns
+
+### INVALID_API_KEY
+
+```json
+{
+  "code": "INVALID_API_KEY",
+  "message": "A API Key fornecida é inválida ou expirou"
+}
+```
+
+**Solução**: Verifique se sua API Key está correta no dashboard.
+
+### EXPERIMENT_NOT_FOUND
+
+```json
+{
+  "code": "EXPERIMENT_NOT_FOUND",
+  "message": "Experimento não encontrado"
+}
+```
+
+**Solução**: Verifique se o `experimentId` existe e está ativo.
+
+### MISSING_REQUIRED_FIELD
+
+```json
+{
+  "code": "MISSING_REQUIRED_FIELD",
+  "message": "Campo obrigatório ausente",
+  "details": {
+    "field": "userId"
+  }
+}
+```
+
+**Solução**: Inclua todos os campos obrigatórios na requisição.
+
+---
+
+## Recursos Principais
+
+A API do Testly oferece os seguintes recursos:
+
+### 1. Experimentos
+
+Gerenciar experimentos A/B:
+
+- `GET /experiments` - Listar todos os experimentos
+- `GET /experiments/:id` - Obter detalhes de um experimento
+- `POST /experiments` - Criar novo experimento
+- `PATCH /experiments/:id` - Atualizar experimento
+- `DELETE /experiments/:id` - Deletar experimento
+
+### 2. Variantes
+
+Atribuir e gerenciar variantes:
+
+- `POST /variants/assign` - Atribuir variante para um usuário
+- `GET /variants/:id` - Obter detalhes de uma variante
+
+### 3. Eventos
+
+Registrar impressões e conversões:
+
+- `POST /events/impression` - Registrar impressão
+- `POST /events/conversion` - Registrar conversão
+
+---
+
+## Exemplo: Fluxo Completo
+
+Aqui está um exemplo completo de como implementar um experimento A/B usando a API diretamente:
+
+### 1. Atribuir Variante
+
+```bash
+curl -X POST https://api.testly.com/v1/variants/assign \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experimentId": "homepage-hero-test",
+    "userId": "user_123"
+  }'
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "variantId": "variant-b",
+    "variantName": "Variante B",
+    "experimentId": "homepage-hero-test"
+  }
+}
+```
+
+### 2. Registrar Impressão
+
+```bash
+curl -X POST https://api.testly.com/v1/events/impression \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experimentId": "homepage-hero-test",
+    "variantId": "variant-b",
+    "userId": "user_123"
+  }'
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "eventId": "evt_abc123",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### 3. Registrar Conversão
+
+```bash
+curl -X POST https://api.testly.com/v1/events/conversion \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experimentId": "homepage-hero-test",
+    "variantId": "variant-b",
+    "userId": "user_123",
+    "eventName": "cta_clicked"
+  }'
+```
+
+**Resposta:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "eventId": "evt_xyz789",
+    "timestamp": "2024-01-15T10:35:00Z"
+  }
+}
+```
+
+---
+
+## SDK vs API Direta
+
+| Aspecto | SDK React | API Direta |
+|---------|-----------|------------|
+| **Setup** | 2 linhas de código | Implementação manual |
+| **Cache** | Automático | Você precisa implementar |
+| **Retry** | Automático | Você precisa implementar |
+| **TypeScript** | Tipos incluídos | Você precisa criar |
+| **Impressões** | Automáticas | Você precisa chamar |
+| **Estado** | Gerenciado pelo React | Você precisa gerenciar |
+| **Use case** | Apps React | Qualquer linguagem |
+
+---
+
+## Implementação Customizada
+
+Se você quiser criar sua própria camada de abstração (ex: SDK para Vue):
+
+### Exemplo: Cliente JavaScript
+
+```javascript
+class TestlyClient {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.testly.com/v1';
+  }
+
+  async assignVariant(experimentId, userId) {
+    const response = await fetch(`${this.baseUrl}/variants/assign`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ experimentId, userId })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async recordImpression(experimentId, variantId, userId) {
+    const response = await fetch(`${this.baseUrl}/events/impression`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ experimentId, variantId, userId })
+    });
+
+    return response.json();
+  }
+
+  async recordConversion(experimentId, variantId, userId, eventName) {
+    const response = await fetch(`${this.baseUrl}/events/conversion`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ experimentId, variantId, userId, eventName })
+    });
+
+    return response.json();
+  }
+}
+
+// Uso
+const client = new TestlyClient('YOUR_API_KEY');
+
+// 1. Atribuir variante
+const { data } = await client.assignVariant('homepage-hero', 'user_123');
+console.log('Variante:', data.variantId);
+
+// 2. Registrar impressão
+await client.recordImpression('homepage-hero', data.variantId, 'user_123');
+
+// 3. Registrar conversão
+await client.recordConversion('homepage-hero', data.variantId, 'user_123', 'clicked');
+```
+
+---
+
+## Webhooks (Em Desenvolvimento)
+
+Em breve você poderá configurar webhooks para receber notificações de:
+
+- ✅ Experimento atingiu significância estatística
+- ✅ Conversões registradas
+- ✅ Mudanças em experimentos
+
+<Note>
+  Webhooks estão em desenvolvimento. Entre em contato via [support@testly.com](mailto:support@testly.com) se precisar dessa funcionalidade.
+</Note>
+
+---
+
+## Exemplos em Outras Linguagens
+
+### Python
+
+```python
+import requests
+
+class TestlyClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = 'https://api.testly.com/v1'
+        self.headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+    
+    def assign_variant(self, experiment_id, user_id):
+        response = requests.post(
+            f'{self.base_url}/variants/assign',
+            headers=self.headers,
+            json={'experimentId': experiment_id, 'userId': user_id}
+        )
+        return response.json()
+
+# Uso
+client = TestlyClient('YOUR_API_KEY')
+result = client.assign_variant('homepage-hero', 'user_123')
+print(result['data']['variantId'])
+```
+
+### PHP
+
+```php
+<?php
+class TestlyClient {
+    private $apiKey;
+    private $baseUrl = 'https://api.testly.com/v1';
+    
+    public function __construct($apiKey) {
+        $this->apiKey = $apiKey;
+    }
+    
+    public function assignVariant($experimentId, $userId) {
+        $ch = curl_init("{$this->baseUrl}/variants/assign");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer {$this->apiKey}",
+            "Content-Type: application/json"
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+            'experimentId' => $experimentId,
+            'userId' => $userId
+        ]));
+        
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
+        return json_decode($response, true);
+    }
+}
+
+// Uso
+$client = new TestlyClient('YOUR_API_KEY');
+$result = $client->assignVariant('homepage-hero', 'user_123');
+echo $result['data']['variantId'];
+?>
+```
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Autenticação" icon="key" href="/api-reference/authentication">
+    Detalhes sobre API Keys e segurança
+  </Card>
+  <Card title="Endpoints" icon="code" href="/api-reference/experiments/list">
+    Documentação completa de cada endpoint
+  </Card>
+  <Card title="SDK React" icon="react" href="/sdk/installation">
+    Use o SDK oficial para React
+  </Card>
+  <Card title="Exemplos" icon="book" href="/examples/hero-section">
+    Veja implementações práticas
+  </Card>
+</CardGroup>
+
+---
+
+## Suporte
+
+Precisa de ajuda com a API?
+
+<Card title="Contato" icon="envelope" href="mailto:support@testly.com">
+  **Email**: support@testly.com
+  
+  **Discord**: [discord.gg/testly](https://discord.gg/testly)
+  
+  Respondemos em até 24h (geralmente muito mais rápido!)
+</Card>
