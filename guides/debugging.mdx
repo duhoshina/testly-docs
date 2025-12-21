@@ -1,0 +1,734 @@
+---
+title: "Debugging"
+description: "Guia completo para identificar e resolver problemas com o Testly SDK"
+---
+
+## Debug Mode
+
+A primeira ferramenta para troubleshooting é ativar o modo debug.
+
+### Ativar Debug
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: true // ou process.env.NODE_ENV === 'development'
+  }}
+>
+```
+
+### Logs que Você Verá
+
+```
+[Testly] 🚀 SDK initialized
+[Testly] 🔑 API Key: testly_abc...xyz (valid)
+[Testly] ✅ Experiment loaded: homepage-hero-test
+[Testly] 👤 User ID: user_123abc
+[Testly] 🎲 Assigned variant: variant-b
+[Testly] 📊 Impression recorded
+[Testly] 🎯 Conversion recorded: cta_clicked
+[Testly] ❌ API ERROR: 401 Unauthorized
+```
+
+<Tip>
+  **Recomendação**: Sempre desenvolva com `debug: true`. Isso economiza horas de troubleshooting.
+</Tip>
+
+---
+
+## Problemas Comuns e Soluções
+
+### 1. Nada Acontece / Variante Sempre Null
+
+**Sintomas:**
+```tsx
+const { variant } = useExperiment('test');
+console.log(variant); // null
+```
+
+**Possíveis Causas:**
+
+<AccordionGroup>
+  <Accordion title="API Key inválida ou ausente" icon="key">
+    **Como verificar:**
+    ```tsx
+    console.log(process.env.NEXT_PUBLIC_TESTLY_API_KEY); // undefined?
+    ```
+
+    **Solução:**
+    1. Verifique se o arquivo `.env.local` existe
+    2. Certifique-se de usar o prefixo correto:
+       - Next.js: `NEXT_PUBLIC_`
+       - Vite: `VITE_`
+    3. Reinicie o servidor de desenvolvimento
+    4. Verifique no dashboard se a API Key está ativa
+
+    ```bash .env.local
+    # ✅ Correto (Next.js)
+    NEXT_PUBLIC_TESTLY_API_KEY=testly_abc123...
+
+    # ❌ Errado (falta prefixo)
+    TESTLY_API_KEY=testly_abc123...
+    ```
+  </Accordion>
+
+  <Accordion title="Experimento não existe ou está inativo" icon="flask">
+    **Como verificar:**
+    1. Acesse o [dashboard](https://testly.com/dashboard)
+    2. Procure pelo `experimentId` usado no código
+    3. Verifique se está marcado como "Ativo"
+
+    **Solução:**
+    - Crie o experimento no dashboard
+    - Ative o experimento
+    - Use o ID exato (case-sensitive)
+
+    ```tsx
+    // ✅ Correto
+    useExperiment('homepage-hero-test')
+
+    // ❌ Errado (ID diferente)
+    useExperiment('homepage-hero')
+    useExperiment('HomePage-Hero-Test')
+    ```
+  </Accordion>
+
+  <Accordion title="Provider não está envolvendo o componente" icon="layer-group">
+    **Como verificar:**
+    ```tsx
+    // No seu componente
+    const { variant } = useExperiment('test');
+    // Se der erro "useExperiment must be used within TestlyProvider"
+    ```
+
+    **Solução:**
+    Certifique-se de que o `TestlyProvider` está em um nível superior:
+
+    ```tsx
+    // ✅ Correto
+    <TestlyProvider apiKey="...">
+      <App>
+        <MyComponent /> {/* pode usar useExperiment */}
+      </App>
+    </TestlyProvider>
+
+    // ❌ Errado
+    <App>
+      <MyComponent /> {/* NÃO pode usar useExperiment */}
+      <TestlyProvider apiKey="...">
+        ...
+      </TestlyProvider>
+    </App>
+    ```
+  </Accordion>
+
+  <Accordion title="Erro de rede / Timeout" icon="wifi">
+    **Como verificar:**
+    Abra DevTools → Network → Procure por chamadas para `api.testly.com`
+
+    **Possíveis problemas:**
+    - ❌ Request bloqueado por CORS
+    - ❌ Firewall corporativo bloqueando
+    - ❌ Timeout (resposta demorada)
+    - ❌ API fora do ar
+
+    **Solução:**
+    ```tsx
+    // Aumentar timeout
+    <TestlyProvider 
+      config={{
+        timeout: 10000 // 10 segundos
+      }}
+    />
+
+    // Ou verificar status da API
+    // https://status.testly.com
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### 2. Loading Nunca Termina
+
+**Sintomas:**
+```tsx
+const { loading } = useExperiment('test');
+console.log(loading); // sempre true
+```
+
+**Diagnóstico:**
+
+```tsx
+useEffect(() => {
+  console.log('Loading state:', loading);
+  console.log('Variant:', variant);
+  console.log('Error:', error);
+}, [loading, variant, error]);
+```
+
+**Soluções:**
+
+<AccordionGroup>
+  <Accordion title="Timeout muito curto" icon="clock">
+    ```tsx
+    <TestlyProvider 
+      config={{
+        timeout: 8000 // Aumentar para 8s
+      }}
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="API está fora" icon="server">
+    Verifique o status: https://status.testly.com
+
+    Implemente fallback:
+    ```tsx
+    const { variant, loading } = useExperiment('test');
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        if (loading) {
+          console.error('Loading timeout - usando fallback');
+          // Usar versão padrão
+        }
+      }, 10000);
+
+      return () => clearTimeout(timer);
+    }, [loading]);
+    ```
+  </Accordion>
+
+  <Accordion title="Problema de cache infinito" icon="database">
+    Limpar cache manualmente:
+
+    ```javascript
+    // No console do navegador
+    localStorage.clear();
+    location.reload();
+    ```
+
+    Ou desativar cache temporariamente:
+    ```tsx
+    <TestlyProvider 
+      config={{
+        cacheEnabled: false // Apenas para debug
+      }}
+    />
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### 3. Conversões Não São Registradas
+
+**Sintomas:**
+```tsx
+const { convert } = useExperiment('test');
+convert('clicked'); // Nada acontece no dashboard
+```
+
+**Diagnóstico com Debug:**
+
+```tsx
+const { convert } = useExperiment('test');
+
+const handleClick = async () => {
+  try {
+    console.log('Chamando convert...');
+    await convert('clicked');
+    console.log('✅ Conversão registrada!');
+  } catch (error) {
+    console.error('❌ Erro:', error);
+  }
+};
+```
+
+**Possíveis Causas:**
+
+<AccordionGroup>
+  <Accordion title="Impressão não foi registrada primeiro" icon="eye">
+    **Problema**: Conversões só contam se o usuário VIU o experimento antes.
+
+    **Como verificar:**
+    ```tsx
+    const { variant, loading } = useExperiment('test');
+
+    // Se loading for true, impressão ainda não foi registrada
+    if (!loading && variant) {
+      // Agora pode converter
+      convert('clicked');
+    }
+    ```
+
+    **Solução:**
+    Sempre aguarde o loading terminar:
+    ```tsx
+    const { variant, loading, convert } = useExperiment('test');
+
+    if (loading) return <Skeleton />;
+
+    return (
+      <button onClick={() => convert('clicked')}>
+        Clique Aqui
+      </button>
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="Nome do evento inválido" icon="tag">
+    **Problema**: Nome muito longo ou caracteres especiais
+
+    **Solução:**
+    ```tsx
+    // ✅ Bom
+    convert('button_clicked')
+    convert('form_submitted')
+    convert('trial_started')
+
+    // ❌ Ruim
+    convert('Botão Principal da Homepage Clicado!!!') // Muito longo
+    convert('clique@botão') // Caracteres especiais
+    convert('') // Vazio
+    ```
+  </Accordion>
+
+  <Accordion title="Deduplicação está ativa" icon="copy">
+    **Problema**: Você chamou convert() duas vezes na mesma sessão
+
+    ```tsx
+    convert('clicked'); // ✅ Registrada
+    convert('clicked'); // ❌ Ignorada (dedupe)
+    ```
+
+    **Solução**: 
+    - Use nomes diferentes para eventos diferentes
+    - Ou desative dedupe (não recomendado)
+
+    ```tsx
+    <TestlyProvider 
+      config={{
+        dedupConversions: false // Permite duplicatas
+      }}
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="API Key sem permissão de escrita" icon="lock">
+    **Problema**: Sua API Key pode estar configurada como "read-only"
+
+    **Solução:**
+    1. Acesse o dashboard
+    2. Vá em Configurações → API Keys
+    3. Certifique-se que tem permissão de escrita
+    4. Gere uma nova key se necessário
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### 4. Variante Muda a Cada Refresh
+
+**Sintomas:**
+```
+Refresh 1: variant-a
+Refresh 2: variant-b
+Refresh 3: variant-a
+```
+
+**Isso NÃO deveria acontecer!** O Testly garante consistência.
+
+**Possíveis Causas:**
+
+<AccordionGroup>
+  <Accordion title="Cache está desativado" icon="database">
+    **Verificar:**
+    ```tsx
+    <TestlyProvider 
+      config={{
+        cacheEnabled: true // Deve ser true (padrão)
+      }}
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="localStorage está sendo limpo" icon="trash">
+    **Verificar:** Algum código está limpando localStorage?
+
+    ```tsx
+    // Procure por isso no seu código
+    localStorage.clear(); // ❌ Remove cache do Testly
+
+    // Ou limpe apenas o que você precisa
+    localStorage.removeItem('minha-chave'); // ✅ Específico
+    ```
+  </Accordion>
+
+  <Accordion title="Navegação privada/anônima" icon="user-secret">
+    **Problema**: Navegação anônima limpa cookies/storage ao fechar
+
+    **Solução**: Isso é esperado em modo anônimo. Para testar, use navegação normal.
+  </Accordion>
+
+  <Accordion title="userId diferente sendo gerado" icon="user">
+    **Problema**: Se você passa `userId` customizado e ele muda
+
+    ```tsx
+    // ❌ Ruim - userId muda a cada render
+    const { variant } = useExperiment('test', {
+      userId: Math.random().toString()
+    });
+
+    // ✅ Bom - userId consistente
+    const userId = user?.id || 'anonymous';
+    const { variant } = useExperiment('test', { userId });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### 5. Erro: "useExperiment must be used within TestlyProvider"
+
+**Sintoma:**
+```
+Error: useExperiment must be used within TestlyProvider
+```
+
+**Causa:** Hook sendo usado fora do Provider
+
+**Solução:**
+
+```tsx
+// ❌ Errado
+function App() {
+  const { variant } = useExperiment('test'); // Erro!
+  
+  return (
+    <TestlyProvider apiKey="...">
+      <Component />
+    </TestlyProvider>
+  );
+}
+
+// ✅ Correto
+function App() {
+  return (
+    <TestlyProvider apiKey="...">
+      <Component /> {/* useExperiment aqui dentro */}
+    </TestlyProvider>
+  );
+}
+
+function Component() {
+  const { variant } = useExperiment('test'); // ✅ OK
+  return <div>{variant}</div>;
+}
+```
+
+---
+
+### 6. TypeScript: Tipos Não Reconhecidos
+
+**Sintoma:**
+```
+Cannot find module '@testly/react' or its corresponding type declarations
+```
+
+**Soluções:**
+
+<AccordionGroup>
+  <Accordion title="Reinstalar pacote" icon="download">
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="Verificar tsconfig.json" icon="gear">
+    ```json tsconfig.json
+    {
+      "compilerOptions": {
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Criar types declaration (workaround)" icon="file-code">
+    ```typescript types/testly.d.ts
+    declare module '@testly/react' {
+      export function TestlyProvider(props: any): JSX.Element;
+      export function useExperiment(id: string, options?: any): any;
+      export function useConversion(): any;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Ferramentas de Debugging
+
+### 1. DevTools Network Tab
+
+**O que procurar:**
+
+```
+Request URL: https://api.testly.com/v1/variants/assign
+Method: POST
+Status: 200 OK
+
+Request Payload:
+{
+  "experimentId": "homepage-hero-test",
+  "userId": "user_123"
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "variantId": "variant-b"
+  }
+}
+```
+
+**Status codes importantes:**
+
+| Status | Significado | Solução |
+|--------|-------------|---------|
+| `200 OK` | ✅ Sucesso | Tudo certo |
+| `401 Unauthorized` | ❌ API Key inválida | Verificar key |
+| `404 Not Found` | ❌ Experimento não existe | Verificar ID |
+| `429 Too Many Requests` | ❌ Rate limit | Aguardar ou aumentar plano |
+| `500 Server Error` | ❌ Erro no servidor | Contactar suporte |
+
+### 2. React DevTools
+
+**Verificar Provider:**
+
+1. Abra React DevTools
+2. Procure por `TestlyProvider` na árvore de componentes
+3. Verifique as props:
+   - `apiKey` está presente?
+   - `config` está correto?
+
+**Verificar estado do hook:**
+
+1. Selecione componente que usa `useExperiment`
+2. Veja os hooks na sidebar
+3. Verifique valores:
+   - `variant`
+   - `loading`
+   - `error`
+
+### 3. Console Logs Customizados
+
+```tsx
+function DebugExperiment() {
+  const { variant, loading, error, convert } = useExperiment('test');
+
+  useEffect(() => {
+    console.group('🔍 Testly Debug');
+    console.log('Variant:', variant);
+    console.log('Loading:', loading);
+    console.log('Error:', error);
+    console.log('Experiment ID:', 'test');
+    console.log('Timestamp:', new Date().toISOString());
+    console.groupEnd();
+  }, [variant, loading, error]);
+
+  return <div>{variant}</div>;
+}
+```
+
+### 4. Verificar localStorage
+
+```javascript
+// No console do navegador
+Object.keys(localStorage)
+  .filter(key => key.startsWith('testly-'))
+  .forEach(key => {
+    console.log(key, localStorage.getItem(key));
+  });
+
+// Output:
+// testly-experiment-homepage-hero-test: {"variantId":"variant-b","userId":"user_123"}
+// testly-impression-homepage-hero-test-variant-b: true
+```
+
+---
+
+## Checklist de Troubleshooting
+
+Quando algo não funciona, siga esta ordem:
+
+<Steps>
+  <Step title="Ativar Debug Mode">
+    ```tsx
+    config={{ debug: true }}
+    ```
+  </Step>
+
+  <Step title="Verificar Console">
+    Procure por erros vermelhos ou logs `[Testly]`
+  </Step>
+
+  <Step title="Verificar Network Tab">
+    Há requests para `api.testly.com`? Qual o status?
+  </Step>
+
+  <Step title="Verificar Dashboard">
+    Experimento existe? Está ativo?
+  </Step>
+
+  <Step title="Verificar API Key">
+    Está no `.env`? Tem o prefixo correto? Servidor foi reiniciado?
+  </Step>
+
+  <Step title="Verificar Provider">
+    Está envolvendo o componente correto?
+  </Step>
+
+  <Step title="Limpar Cache">
+    ```javascript
+    localStorage.clear();
+    location.reload();
+    ```
+  </Step>
+
+  <Step title="Testar em Navegação Anônima">
+    Elimina problemas de cache/extensões
+  </Step>
+</Steps>
+
+---
+
+## Casos Extremos
+
+### Next.js: Hydration Mismatch
+
+**Sintoma:**
+```
+Warning: Text content did not match. Server: "variant-a" Client: "variant-b"
+```
+
+**Causa:** Servidor e cliente renderizam variantes diferentes
+
+**Solução:**
+
+```tsx
+'use client'; // Forçar client-side
+
+function MyComponent() {
+  const { variant, loading } = useExperiment('test');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || loading) {
+    return <Skeleton />; // Sempre renderiza igual no servidor
+  }
+
+  return <div>{variant}</div>; // Apenas cliente vê variante
+}
+```
+
+### React Strict Mode (Double Render)
+
+**Sintoma:** Logs aparecem duas vezes em desenvolvimento
+
+**Causa:** React 18 Strict Mode renderiza componentes duas vezes
+
+**Solução:** Isso é normal em desenvolvimento. Ignore ou desative Strict Mode:
+
+```tsx
+// ❌ Strict Mode (desenvolvimento)
+<React.StrictMode>
+  <App />
+</React.StrictMode>
+
+// ✅ Sem Strict Mode (apenas se necessário)
+<App />
+```
+
+### CORS em Localhost
+
+**Sintoma:**
+```
+CORS policy: No 'Access-Control-Allow-Origin' header
+```
+
+**Solução:** Use `localhost` ao invés de `127.0.0.1` ou configure proxy:
+
+```javascript next.config.js
+module.exports = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/testly/:path*',
+        destination: 'https://api.testly.com/v1/:path*'
+      }
+    ];
+  }
+};
+```
+
+---
+
+## Precisa de Ajuda?
+
+Se nenhuma solução funcionou:
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/testly">
+    Comunidade ativa de devs
+  </Card>
+  <Card title="Email" icon="envelope" href="mailto:support@testly.com">
+    support@testly.com
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/testly/sdk-react/issues">
+    Reporte bugs
+  </Card>
+  <Card title="Status Page" icon="server" href="https://status.testly.com">
+    Verificar se API está no ar
+  </Card>
+</CardGroup>
+
+**Ao pedir ajuda, inclua:**
+
+```
+- Versão do SDK: 1.x.x
+- Framework: Next.js 14 / React 18
+- Comportamento esperado vs atual
+- Logs do debug mode
+- Network tab screenshot (se relevante)
+- Código relevante (remova API key!)
+```
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Metodologias de experimentação
+  </Card>
+  <Card title="Configuração" icon="gear" href="/sdk/configuration">
+    Opções avançadas do SDK
+  </Card>
+  <Card title="useExperiment" icon="flask" href="/sdk/use-experiment">
+    Documentação do hook principal
+  </Card>
+  <Card title="Exemplos" icon="code" href="/examples/hero-section">
+    Veja implementações práticas
+  </Card>
+</CardGroup>

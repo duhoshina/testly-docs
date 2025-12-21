@@ -1,0 +1,565 @@
+---
+title: "Significância Estatística"
+description: "Entenda quando você pode confiar nos resultados dos seus experimentos A/B"
+---
+
+## O que é Significância Estatística?
+
+Significância estatística é a **probabilidade** de que a diferença entre variantes **não seja apenas sorte**.
+
+<CardGroup cols={2}>
+  <Card title="95% de Confiança" icon="check">
+    Você pode estar 95% confiante que a diferença é real
+  </Card>
+  <Card title="5% de Chance" icon="dice">
+    Ainda há 5% de chance de ser sorte (falso positivo)
+  </Card>
+</CardGroup>
+
+### Exemplo Simples
+
+```
+Você joga uma moeda 10 vezes:
+- 7 caras, 3 coroas
+
+A moeda é viciada? 🤔
+
+Resposta: Provavelmente não. 
+Com apenas 10 jogadas, essa variação é normal.
+
+---
+
+Você joga 1000 vezes:
+- 700 caras, 300 coroas
+
+Agora sim, a moeda está claramente viciada! 
+Com 1000 jogadas, essa diferença é estatisticamente significante.
+```
+
+<Note>
+  **Lição**: Quanto maior a amostra, mais confiança você tem nos resultados.
+</Note>
+
+---
+
+## Por que Isso Importa?
+
+### Cenário Real
+
+```
+Experimento: Hero CTA Text
+Duração: 3 dias
+Tráfego: 200 visitantes
+
+Variante A: 100 visitantes, 10 conversões (10%)
+Variante B: 100 visitantes, 15 conversões (15%)
+
+Diferença: +50% 🎉
+
+Você deveria implementar a Variante B?
+```
+
+**Resposta: NÃO!** 
+
+A amostra é muito pequena. Essa diferença pode ser **apenas sorte**.
+
+### Calculando Significância
+
+Com apenas 200 visitantes, a **significância estatística é ~60%**.
+
+Isso significa:
+- 40% de chance de ser falso positivo
+- Você estaria jogando uma moeda 🎲
+
+**Você precisa de ~800-1000 visitantes** para ter 95% de confiança.
+
+---
+
+## Nível de Confiança
+
+O padrão da indústria é **95% de confiança** (ou p-value < 0.05).
+
+| Confiança | Interpretação | Uso |
+|-----------|---------------|-----|
+| **95%** | Padrão da indústria | Maioria dos testes |
+| **99%** | Alta confiança | Mudanças críticas |
+| **90%** | Confiança média | Testes exploratórios |
+| **< 90%** | Baixa confiança | ❌ Não tome decisões |
+
+### O que Significa na Prática?
+
+```
+95% de confiança significa:
+
+✅ Se você rodar 100 experimentos assim
+✅ ~95 vão te dar resultados corretos
+❌ ~5 vão te dar falsos positivos
+
+Isso é aceitável para a maioria dos casos.
+```
+
+---
+
+## Como Calcular
+
+### Fórmula Básica (Simplificada)
+
+Para testar diferença entre duas proporções:
+
+```
+z = (p1 - p2) / √[p(1-p) × (1/n1 + 1/n2)]
+
+Onde:
+p1 = taxa de conversão variante A
+p2 = taxa de conversão variante B
+n1 = tamanho amostra A
+n2 = tamanho amostra B
+p = (x1 + x2) / (n1 + n2) = taxa combinada
+```
+
+**Não se preocupe!** Use calculadoras online.
+
+### Calculadoras Recomendadas
+
+<CardGroup cols={2}>
+  <Card title="Evan Miller" icon="calculator" href="https://www.evanmiller.org/ab-testing/sample-size.html">
+    AB Test Sample Size Calculator
+  </Card>
+  <Card title="Optimizely" icon="chart-line" href="https://www.optimizely.com/sample-size-calculator/">
+    Sample Size Calculator
+  </Card>
+  <Card title="VWO" icon="vial" href="https://vwo.com/ab-split-test-significance-calculator/">
+    AB Test Significance Calculator
+  </Card>
+  <Card title="AB Testguide" icon="book-open" href="https://abtestguide.com/calc/">
+    Significance Calculator
+  </Card>
+</CardGroup>
+
+---
+
+## Tamanho de Amostra Necessário
+
+### Calculadora Rápida
+
+Use esta fórmula aproximada:
+
+```
+n ≈ 16σ² / Δ²
+
+Onde:
+σ = desvio padrão (~0.5 para conversão)
+Δ = diferença mínima detectável (MDE)
+
+Exemplo:
+Para detectar diferença de 10% (0.10):
+n ≈ 16 × (0.5)² / (0.10)² = 400 visitantes por variante
+```
+
+### Tabela de Referência
+
+| Taxa Base | MDE | Visitantes/Variante | Total |
+|-----------|-----|---------------------|-------|
+| 5% | 5% | 3.800 | 7.600 |
+| 5% | 10% | 1.000 | 2.000 |
+| 5% | 20% | 300 | 600 |
+| 10% | 5% | 3.000 | 6.000 |
+| 10% | 10% | 800 | 1.600 |
+| 10% | 20% | 200 | 400 |
+
+**MDE** = Minimum Detectable Effect (menor diferença que você quer detectar)
+
+<Tip>
+  **Regra prática**: Quanto menor a diferença que você quer detectar, maior a amostra necessária.
+</Tip>
+
+---
+
+## Exemplos Práticos
+
+### Exemplo 1: Amostra Suficiente
+
+```
+Experimento: Hero CTA
+Duração: 14 dias
+
+Variante A (Controle):
+- 5.000 visitantes
+- 250 conversões
+- Taxa: 5.0%
+
+Variante B:
+- 5.000 visitantes
+- 325 conversões  
+- Taxa: 6.5%
+
+Diferença: +30%
+Significância: 97%
+```
+
+**Decisão: ✅ Implementar Variante B**
+
+**Justificativa:**
+- ✅ Amostra grande (5.000 por variante)
+- ✅ Significância > 95%
+- ✅ Diferença substancial (+30%)
+- ✅ Teste rodou 2 semanas completas
+
+### Exemplo 2: Amostra Insuficiente
+
+```
+Experimento: Pricing Layout
+Duração: 3 dias
+
+Variante A:
+- 150 visitantes
+- 15 conversões
+- Taxa: 10.0%
+
+Variante B:
+- 150 visitantes
+- 24 conversões
+- Taxa: 16.0%
+
+Diferença: +60%
+Significância: 78%
+```
+
+**Decisão: ⏸️ Continuar experimento**
+
+**Justificativa:**
+- ❌ Amostra pequena (150 por variante)
+- ❌ Significância < 95% (apenas 78%)
+- ❌ Apenas 3 dias de teste
+- ✅ Resultado promissor → continuar testando
+
+### Exemplo 3: Falso Positivo
+
+```
+Experimento: Newsletter Popup
+Duração: 2 dias
+
+Variante A:
+- 80 visitantes
+- 8 conversões
+- Taxa: 10.0%
+
+Variante B:
+- 80 visitantes
+- 16 conversões
+- Taxa: 20.0%
+
+Diferença: +100%
+Significância: 65%
+```
+
+**Decisão: ❌ Não implementar**
+
+**Justificativa:**
+- ❌ Amostra muito pequena (80 por variante)
+- ❌ Significância muito baixa (65%)
+- ❌ Alta chance de falso positivo
+- ⚠️ Apesar da diferença dramática (+100%), não é confiável
+
+**O que fazer:**
+- Continue o experimento por mais 1-2 semanas
+- Precisa de ~400 visitantes por variante
+
+---
+
+## Erros Comuns
+
+### Erro 1: Peeking (Espiar Resultados)
+
+```
+❌ RUIM:
+Dia 1: Variante B ganhando! (significância 85%)
+Dia 2: Variante A recuperou! (empate)
+Dia 3: Variante B na frente! (significância 92%)
+Dia 4: Vou implementar! (significância 96%)
+
+Problema: Você está "minerando" os dados até achar 
+um resultado positivo. Isso infla falsos positivos.
+
+✅ BOM:
+Defina duração ANTES (14 dias)
+Não olhe resultados diariamente
+Analise apenas no final
+```
+
+### Erro 2: Stopping Early
+
+```
+❌ RUIM:
+Dia 2: "Variante B está MUITO melhor! 
+Vou parar o teste e implementar."
+
+✅ BOM:
+Aguarde pelo menos 1-2 semanas
+Atinja tamanho de amostra mínimo
+Verifique significância estatística
+```
+
+### Erro 3: Multiple Testing
+
+```
+❌ RUIM:
+Rodei 20 testes A/B esse mês.
+1 deles mostrou melhoria de 50%!
+Vou implementar!
+
+Problema: Por pura sorte, 1 em 20 testes vai 
+mostrar resultado "significante" (falso positivo).
+
+✅ BOM:
+Teste hipóteses bem fundamentadas
+Use correção de Bonferroni para múltiplos testes
+Valide resultados surpreendentes com novo teste
+```
+
+---
+
+## P-Value: O que Significa?
+
+**P-value** é a probabilidade de obter o resultado observado **se não houver diferença real**.
+
+| P-value | Significância | Interpretação |
+|---------|---------------|---------------|
+| < 0.01 | 99% | Muito significante |
+| < 0.05 | 95% | Significante (padrão) |
+| < 0.10 | 90% | Marginalmente significante |
+| > 0.10 | < 90% | Não significante |
+
+### Exemplo
+
+```
+P-value = 0.03 (ou 3%)
+
+Significa:
+Se NÃO houver diferença real entre as variantes,
+você teria apenas 3% de chance de observar 
+uma diferença tão grande quanto a que você viu.
+
+Logo: Provavelmente HÁ uma diferença real!
+```
+
+---
+
+## Intervalo de Confiança
+
+Além de significância, olhe para o **intervalo de confiança** (confidence interval).
+
+### Exemplo
+
+```
+Experimento: Hero CTA
+Diferença observada: +20%
+
+Intervalo de confiança (95%):
+[+12%, +28%]
+
+Interpretação:
+Você pode estar 95% confiante que a melhoria 
+real está entre 12% e 28%.
+```
+
+### Por que Isso Importa?
+
+```
+Cenário A:
+Diferença: +20%
+IC 95%: [+18%, +22%]
+→ Resultado muito confiável, intervalo estreito
+
+Cenário B:
+Diferença: +20%
+IC 95%: [-5%, +45%]
+→ Resultado incerto, intervalo muito largo
+→ Pode ser de -5% até +45%!
+```
+
+<Warning>
+  **Cuidado**: Um intervalo de confiança largo indica **incerteza**, mesmo que o resultado pareça promissor.
+</Warning>
+
+---
+
+## Checklist Antes de Decidir
+
+Antes de implementar uma variante vencedora:
+
+<Steps>
+  <Step title="✅ Significância ≥ 95%">
+    Confiança de pelo menos 95% (p-value < 0.05)
+  </Step>
+
+  <Step title="✅ Amostra Adequada">
+    Mínimo 100-200 conversões por variante
+  </Step>
+
+  <Step title="✅ Tempo Suficiente">
+    Pelo menos 1-2 semanas completas
+  </Step>
+
+  <Step title="✅ Resultado Estável">
+    Não oscila drasticamente dia a dia
+  </Step>
+
+  <Step title="✅ Faz Sentido">
+    Resultado é plausível e explicável
+  </Step>
+
+  <Step title="✅ Intervalo de Confiança">
+    Intervalo não inclui zero (ou valores negativos)
+  </Step>
+</Steps>
+
+---
+
+## Ferramentas e Recursos
+
+### Calculadoras
+
+<CardGroup cols={2}>
+  <Card title="Sample Size" icon="calculator" href="https://www.evanmiller.org/ab-testing/sample-size.html">
+    Calcule quantos visitantes precisa
+  </Card>
+  <Card title="Significance" icon="chart-line" href="https://abtestguide.com/calc/">
+    Calcule significância dos resultados
+  </Card>
+  <Card title="Duration" icon="clock" href="https://vwo.com/tools/ab-test-duration-calculator/">
+    Calcule duração necessária
+  </Card>
+  <Card title="Bayesian" icon="brain" href="https://www.abtasty.com/bayesian-calculator/">
+    Abordagem Bayesiana (avançado)
+  </Card>
+</CardGroup>
+
+### Artigos Recomendados
+
+- [How Not To Run an A/B Test](https://www.evanmiller.org/how-not-to-run-an-ab-test.html) - Evan Miller
+- [Statistical Significance in A/B Testing](https://cxl.com/blog/statistical-significance/) - CXL
+- [AB Testing Statistics](https://www.optimizely.com/optimization-glossary/ab-testing/) - Optimizely
+
+---
+
+## Frequentist vs Bayesian
+
+Existem duas abordagens principais:
+
+### Frequentist (Padrão)
+
+**O que é:**
+- Abordagem tradicional
+- Usa p-value e significância
+- Responde: "Qual a probabilidade de ver esses dados se não houver diferença?"
+
+**Prós:**
+- ✅ Padrão da indústria
+- ✅ Bem entendido e documentado
+- ✅ Calculadoras amplamente disponíveis
+
+**Contras:**
+- ❌ Não te diz "qual variante é melhor"
+- ❌ Apenas rejeita ou não rejeita hipótese nula
+
+### Bayesian (Avançado)
+
+**O que é:**
+- Incorpora conhecimento prévio
+- Responde: "Qual a probabilidade da Variante B ser melhor?"
+- Resultado: "94% de chance de B ser melhor que A"
+
+**Prós:**
+- ✅ Mais intuitivo para interpretar
+- ✅ Permite parar teste mais cedo
+- ✅ Incorpora incerteza naturalmente
+
+**Contras:**
+- ❌ Menos comum
+- ❌ Requer definir prior (conhecimento prévio)
+- ❌ Mais complexo de implementar
+
+<Note>
+  **Recomendação**: Use **Frequentist** (padrão) a menos que você seja estatístico ou tenha razão específica para usar Bayesian.
+</Note>
+
+---
+
+## Casos Especiais
+
+### Testes com Baixo Tráfego
+
+Se você tem **< 1.000 visitantes/mês**:
+
+```
+Opções:
+1. Teste mudanças MUITO dramáticas (>50% de impacto esperado)
+2. Rode por mais tempo (2-3 meses)
+3. Use métodos qualitativos (user testing, feedback)
+```
+
+### Testes em B2B
+
+Se você tem **poucos usuários mas alto valor**:
+
+```
+Foque em:
+- Revenue per visitor
+- Qualidade dos leads
+- Lifetime value
+
+Não apenas em:
+- Taxa de conversão
+```
+
+### Testes de Revenue
+
+```
+Métricas:
+- Revenue per visitor (RPV)
+- Average order value (AOV)
+- Customer lifetime value (CLV)
+
+Tamanho de amostra:
+- Geralmente precisa de MAIS dados
+- Receita tem mais variância que conversão
+```
+
+---
+
+## Resumo: Regras de Ouro
+
+<CardGroup cols={2}>
+  <Card title="95%+ Confiança" icon="check-double">
+    Sempre aguarde significância ≥95%
+  </Card>
+  <Card title="100+ Conversões" icon="users">
+    Mínimo absoluto por variante
+  </Card>
+  <Card title="1-2 Semanas" icon="calendar">
+    Duração mínima para capturar variação
+  </Card>
+  <Card title="Não Espie!" icon="eye-slash">
+    Defina critérios antes e não mude
+  </Card>
+</CardGroup>
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Metodologias completas
+  </Card>
+  <Card title="Debugging" icon="bug" href="/guides/debugging">
+    Resolva problemas técnicos
+  </Card>
+  <Card title="Exemplos" icon="code" href="/examples/hero-section">
+    Veja implementações práticas
+  </Card>
+  <Card title="useExperiment" icon="flask" href="/sdk/use-experiment">
+    Documentação do SDK
+  </Card>
+</CardGroup>
