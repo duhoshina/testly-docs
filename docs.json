@@ -1,68 +1,94 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Testly: Ferramenta de Teste A/B Grátis",
+  "name": "Testly",
   "colors": {
     "primary": "#10B981",
     "light": "#007BFF",
     "dark": "#007BFF"
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Dashboard",
+        "href": "https://testly.com/dashboard"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Criar Conta Grátis",
+      "href": "https://testly.com/signup"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guias",
+        "tab": "Documentação",
         "groups": [
           {
             "group": "Primeiros Passos",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "quickstart"
             ]
           },
           {
-            "group": "Personalização",
+            "group": "React SDK",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "sdk/installation",
+              "sdk/use-experiment",
+              "sdk/use-conversion",
+              "sdk/configuration"
             ]
           },
           {
-            "group": "Escrevendo Conteúdo",
+            "group": "Guias",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "Ferramentas AI",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "guides/best-practices",
+              "guides/debugging",
+              "guides/statistical-significance"
             ]
           }
         ]
       },
       {
-        "tab": "Referência da API",
+        "tab": "Exemplos",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Casos de Uso",
             "pages": [
-              "api-reference/introduction"
+              "examples/hero-section",
+              "examples/pricing-page",
+              "examples/call-to-action",
+              "examples/onboarding-flow"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Visão Geral",
+            "pages": [
+              "api-reference/introduction",
+              "api-reference/authentication"
             ]
           },
           {
-            "group": "Exemplos de Endpoints",
+            "group": "Endpoints",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/experiments/list",
+              "api-reference/experiments/get",
+              "api-reference/experiments/create",
+              "api-reference/variants/assign",
+              "api-reference/events/impression",
+              "api-reference/events/conversion"
             ]
           }
         ]
@@ -71,52 +97,38 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Dashboard",
+          "href": "https://testly.com/dashboard",
+          "icon": "chart-line"
         },
         {
-          "anchor": "Ferramenta",
-          "href": "https://testly.com.br/?utm_source=docs&utm_campaign=globalAnchors&utm_content=tool",
-          "icon": "newspaper"
+          "anchor": "Comunidade",
+          "href": "https://discord.gg/testly",
+          "icon": "discord"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/testly/sdk-react",
+          "icon": "github"
         }
       ]
     }
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://testly.com"
-    }
-  },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/testly",
+      "github": "https://github.com/testly",
+      "linkedin": "https://linkedin.com/company/testly"
     }
   }
 }
