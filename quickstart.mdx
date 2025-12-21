@@ -1,6 +1,6 @@
 ---
 title: "Guia Rápido"
-description: "Implemente testes A/B em seu site usando nosso SDK plug-and-play"
+description: "Implemente seu primeiro teste A/B em 5 minutos com o Testly React SDK"
 ---
 
 ## Pré-requisitos
@@ -11,440 +11,625 @@ Antes de começar, você precisa ter:
   <Card title="Conta Criada" icon="user-plus">
     Uma conta criada na plataforma Testly
   </Card>
-  <Card title="Experimento Configurado" icon="flask">
-    Um experimento criado no dashboard
+  <Card title="Projeto React" icon="react">
+    React 16.8+ ou Next.js funcionando
   </Card>
   <Card title="API Key" icon="key">
     Sua chave de API (encontrada no dashboard)
   </Card>
-  <Card title="Experiment ID" icon="fingerprint">
-    O ID do experimento criado
+  <Card title="Node.js" icon="node-js">
+    Node.js 14+ instalado
   </Card>
 </CardGroup>
 
-<Warning>
-  Você também precisará definir um **Element ID** único no seu HTML onde a variante será renderizada.
-</Warning>
-
 ---
 
-## Implementação em HTML Puro
+## Instalação
 
-### Passo 1: Adicione o elemento container
-
-Coloque uma `<div>` vazia onde você quer que a variante apareça:
-
-```html
-<div id="meu-botao-cta"></div>
-```
-
-### Passo 2: Adicione o script do SDK
-
-Adicione o script **`antes do fechamento da tag </body>`**:
-
-```html
-<script src="https://testly.com.br/flow.js?experimentId=SEU_EXPERIMENT_ID&elementId=meu-botao-cta&apiKey=SUA_API_KEY"></script>
-```
-
-### Exemplo completo
-
-```html
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Minha Landing Page</title>
-</head>
-<body>
-  <h1>Bem-vindo!</h1>
-  <p>Confira nossa oferta especial:</p>
-  
-  <!-- Container onde a variante será renderizada -->
-  <div id="meu-botao-cta"></div>
-
-  <!-- SDK Script -->
-  <script src="https://testly.com.br/flow.js?experimentId=0c644154-598b-4557-9e3c-a7706a9d1ab1&elementId=meu-botao-cta&apiKey=b4e46e6992744175dc521ac4b72f259afa648280d75938111e3d3910b6efa2df"></script>
-</body>
-</html>
-```
-
-<Tip>
-  Cole o script logo antes de `</body>` para garantir que todo o DOM esteja carregado antes da execução.
-</Tip>
-
----
-
-## Implementação em React
+### Passo 1: Instale o pacote
 
 <Tabs>
-  <Tab title="Hook Personalizado (Recomendado)">
-    ### Criar hook reutilizável
-
-    ```jsx hooks/useABTest.js
-    import { useEffect } from 'react';
-    
-    export function useABTest(experimentId, elementId, apiKey, debug = false) {
-      useEffect(() => {
-        const script = document.createElement('script');
-        script.src = `https://testly.com.br/flow.js?experimentId=${experimentId}&elementId=${elementId}&apiKey=${apiKey}${debug ? '&debug=true' : ''}`;
-        script.async = true;
-        document.body.appendChild(script);
-    
-        return () => {
-          document.body.removeChild(script);
-        };
-      }, [experimentId, elementId, apiKey, debug]);
-    }
+  <Tab title="npm">
+    ```bash
+    npm install @testly/react
     ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @testly/react
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @testly/react
+    ```
+  </Tab>
+</Tabs>
 
-    ### Usar no componente
+### Passo 2: Configure o Provider
 
-    ```jsx components/CTAButton.jsx
-    import { useABTest } from '../hooks/useABTest';
+Envolva sua aplicação com o `TestlyProvider` no arquivo principal (geralmente `App.tsx` ou `_app.tsx` no Next.js):
+
+<Tabs>
+  <Tab title="React (Vite/CRA)">
+    ```tsx App.tsx
+    import { TestlyProvider } from '@testly/react';
+    import { Main } from './components/Main';
     
-    export function CTAButton() {
-      useABTest(
-        '0c644154-598b-4557-9e3c-a7706a9d1ab1', // experimentId
-        'submit-button',                          // elementId
-        'b4e46e6992744175dc521ac4b72f259afa648280d75938111e3d3910b6efa2df', // apiKey
-        true // debug (opcional)
+    function App() {
+      return (
+        <TestlyProvider 
+          apiKey={process.env.REACT_APP_TESTLY_API_KEY}
+          config={{
+            debug: process.env.NODE_ENV === 'development'
+          }}
+        >
+          <Main />
+        </TestlyProvider>
       );
+    }
     
-      return <div id="submit-button"></div>;
+    export default App;
+    ```
+  </Tab>
+  <Tab title="Next.js (App Router)">
+    ```tsx app/layout.tsx
+    import { TestlyProvider } from '@testly/react';
+    
+    export default function RootLayout({
+      children,
+    }: {
+      children: React.ReactNode;
+    }) {
+      return (
+        <html lang="pt-BR">
+          <body>
+            <TestlyProvider 
+              apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+              config={{
+                debug: process.env.NODE_ENV === 'development'
+              }}
+            >
+              {children}
+            </TestlyProvider>
+          </body>
+        </html>
+      );
     }
     ```
   </Tab>
-  <Tab title="Componente Direto">
-    ```jsx components/CTAButton.jsx
-    import { useEffect } from 'react';
+  <Tab title="Next.js (Pages Router)">
+    ```tsx pages/_app.tsx
+    import type { AppProps } from 'next/app';
+    import { TestlyProvider } from '@testly/react';
     
-    export function CTAButton() {
-      useEffect(() => {
-        const elementId = 'submit-button';
-        const experimentId = '0c644154-598b-4557-9e3c-a7706a9d1ab1';
-        const apiKey = 'b4e46e6992744175dc521ac4b72f259afa648280d75938111e3d3910b6efa2df';
-    
-        const script = document.createElement('script');
-        script.src = `https://testly.com.br/flow.js?experimentId=${experimentId}&elementId=${elementId}&apiKey=${apiKey}&debug=true`;
-        script.async = true;
-        document.body.appendChild(script);
-    
-        return () => {
-          document.body.removeChild(script);
-        };
-      }, []);
-    
-      return <div id="submit-button"></div>;
+    export default function App({ Component, pageProps }: AppProps) {
+      return (
+        <TestlyProvider 
+          apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+          config={{
+            debug: process.env.NODE_ENV === 'development'
+          }}
+        >
+          <Component {...pageProps} />
+        </TestlyProvider>
+      );
     }
     ```
   </Tab>
 </Tabs>
 
----
+<Warning>
+  **Variáveis de ambiente**:
 
-## Implementação via Google Tag Manager
+  - React/Vite: Use `REACT_APP_TESTLY_API_KEY` ou `VITE_TESTLY_API_KEY`
+  - Next.js: Use `NEXT_PUBLIC_TESTLY_API_KEY`
 
-<Steps>
-  <Step title="Criar container no HTML">
-    Adicione o elemento onde a variante será renderizada:
+  Nunca commite sua API Key no código!
+</Warning>
 
-    ```html
-    <div id="meu-botao-cta"></div>
-    ```
-  </Step>
-  <Step title="Criar Tag no GTM">
-    1. Acesse seu **Google Tag Manager**
-    2. Clique em **Tags** → **Nova**
-    3. Configure a tag:
+### Passo 3: Crie um arquivo `.env`
 
-    **Nome da Tag**: `A/B Test - Botão CTA`
+Crie um arquivo `.env` na raiz do projeto:
 
-    **Tipo de Tag**: `HTML Personalizado`
+```bash .env
+REACT_APP_TESTLY_API_KEY=sua_api_key_aqui
+# ou para Next.js:
+# NEXT_PUBLIC_TESTLY_API_KEY=sua_api_key_aqui
+```
 
-    **HTML**:
+Adicione `.env` ao seu `.gitignore`:
 
-    ```html
-    <script>
-    (function() {
-      var script = document.createElement('script');
-      script.src = 'https://testly.com.br/flow.js?experimentId=0c644154-598b-4557-9e3c-a7706a9d1ab1&elementId=meu-botao-cta&apiKey=b4e46e6992744175dc521ac4b72f259afa648280d75938111e3d3910b6efa2df';
-      script.async = true;
-      document.body.appendChild(script);
-    })();
-    </script>
-    ```
-
-    **Acionamento**:
-
-    - Escolha `DOM Ready` ou `Page View`
-    - Se quiser em páginas específicas, crie um acionador personalizado
-  </Step>
-  <Step title="Publicar">
-    1. Clique em **Salvar**
-    2. Clique em **Enviar** para publicar as alterações
-    3. Teste no modo de visualização antes de publicar
-  </Step>
-</Steps>
-
-<Accordion title="Usando variáveis GTM (avançado)">
-  Você pode usar variáveis do GTM para deixar mais dinâmico:
-
-  ```html
-  <script>
-  (function() {
-    var script = document.createElement('script');
-    script.src = 'https://testly.com.br/flow.js?experimentId={{Experiment ID}}&elementId={{Element ID}}&apiKey={{API Key}}';
-    script.async = true;
-    document.body.appendChild(script);
-  })();
-  </script>
-  ```
-
-  Crie variáveis constantes no GTM:
-
-  - `{{Experiment ID}}` = `0c644154-598b-4557-9e3c-a7706a9d1ab1`
-  - `{{Element ID}}` = `meu-botao-cta`
-  - `{{API Key}}` = `b4e46e6992744175dc521ac4b72f259afa648280d75938111e3d3910b6efa2df`
-</Accordion>
+```bash .gitignore
+.env
+.env.local
+```
 
 ---
 
-## Parâmetros do SDK
+## Seu Primeiro Experimento
 
-| Parâmetro      | Obrigatório | Descrição                                            | Exemplo                                |
-| -------------- | ----------- | ---------------------------------------------------- | -------------------------------------- |
-| `experimentId` | ✅ Sim       | ID do experimento criado no dashboard                | `0c644154-598b-4557-9e3c-a7706a9d1ab1` |
-| `elementId`    | ✅ Sim       | ID do elemento HTML onde a variante será renderizada | `submit-button`                        |
-| `apiKey`       | ✅ Sim       | Sua chave de API (encontrada no dashboard)           | `b4e46e699274...`                      |
-| `debug`        | ❌ Não       | Ativa logs no console para debugging                 | `true` ou `false` (padrão: `false`)    |
+Vamos criar um teste A/B simples para um botão de CTA.
+
+### Passo 1: Crie o experimento no dashboard
+
+1. Acesse o [dashboard do Testly](https://testly.com/dashboard)
+2. Clique em **"Novo Experimento"**
+3. Dê um nome: `homepage-cta-test`
+4. Crie duas variantes:
+   - **Variante A (Controle)**: "Comece Grátis"
+   - **Variante B (Tratamento)**: "Experimente Agora"
+5. Copie o **Experiment ID** gerado (ex: `homepage-cta-test`)
+
+### Passo 2: Implemente o hook `useExperiment`
+
+Crie um componente que usa o teste A/B:
+
+```tsx components/HeroSection.tsx
+import { useExperiment } from '@testly/react';
+
+export function HeroSection() {
+  const { variant, loading, error, convert } = useExperiment('homepage-cta-test');
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="hero">
+        <h1>Transforme seu produto com dados</h1>
+        <div className="skeleton-button" /> {/* Placeholder */}
+      </div>
+    );
+  }
+
+  // Error fallback
+  if (error) {
+    console.error('Erro ao carregar experimento:', error);
+    return (
+      <div className="hero">
+        <h1>Transforme seu produto com dados</h1>
+        <button onClick={() => window.location.href = '/signup'}>
+          Comece Grátis
+        </button>
+      </div>
+    );
+  }
+
+  // Render variants
+  return (
+    <div className="hero">
+      <h1>Transforme seu produto com dados</h1>
+      
+      {variant === 'variant-b' ? (
+        <button 
+          className="cta-button"
+          onClick={() => {
+            convert('cta_clicked');
+            window.location.href = '/signup';
+          }}
+        >
+          Experimente Agora 🚀
+        </button>
+      ) : (
+        <button 
+          className="cta-button"
+          onClick={() => {
+            convert('cta_clicked');
+            window.location.href = '/signup';
+          }}
+        >
+          Comece Grátis
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+<Tip>
+  **Boas práticas**:
+
+  - Sempre implemente estados de `loading` e `error`
+  - Use um fallback que mantenha a funcionalidade do site
+  - Chame `convert()` quando a ação desejada acontecer
+</Tip>
+
+### Passo 3: Use o componente
+
+```tsx pages/index.tsx
+import { HeroSection } from '../components/HeroSection';
+
+export default function Home() {
+  return (
+    <main>
+      <HeroSection />
+      {/* Resto da página */}
+    </main>
+  );
+}
+```
 
 ---
 
-## Como Funciona
+## Tracking de Conversões
 
-<AccordionGroup>
-  <Accordion title="Primeira visita" icon="eye">
-    - O SDK escolhe uma variante aleatoriamente
-    - Salva a escolha no `localStorage` do navegador
-    - Registra uma **impressão**
-    - Renderiza a variante no elemento especificado
-  </Accordion>
-  <Accordion title="Visitas seguintes" icon="rotate">
-    - O SDK carrega a mesma variante do `localStorage`
-    - Não registra nova impressão (evita duplicatas)
-    - Mantém consistência na experiência do usuário
-  </Accordion>
-  <Accordion title="Conversão" icon="check-circle">
-    - Quando o usuário clica no elemento renderizado
-    - O SDK registra uma **conversão**
-    - As métricas são atualizadas no dashboard
-  </Accordion>
-</AccordionGroup>
+O Testly oferece **duas formas** de rastrear conversões:
 
----
+### 1. Conversão Específica (Recomendado)
 
-## Exemplo de Uso Completo
+Use quando a conversão está **diretamente relacionada ao experimento**:
 
-Landing page com múltiplos testes A/B:
+```tsx
+const { variant, convert } = useExperiment('pricing-test');
 
-```html
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Landing Page - Oferta Especial</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    .experiment-container {
-      margin: 2rem 0;
-      padding: 1rem;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Oferta Imperdível! 🎉</h1>
+<button onClick={() => convert('plan_selected')}>
+  Selecionar Plano Premium
+</button>
+```
+
+✅ **Vantagens**:
+
+- Mais preciso
+- Não gera "ruído" em outros experimentos
+- Performance melhor
+
+### 2. Conversão Global
+
+Use quando uma ação deve contar para **todos os experimentos ativos**:
+
+```tsx
+import { useConversion } from '@testly/react';
+
+function CheckoutButton() {
+  const trackGlobal = useConversion();
   
-  <p>Aproveite nossa promoção de lançamento com até 50% de desconto!</p>
-
-  <!-- Teste A/B: Headline -->
-  <div class="experiment-container">
-    <div id="headline-test"></div>
-  </div>
-
-  <!-- Teste A/B: CTA Principal -->
-  <div class="experiment-container">
-    <div id="cta-principal"></div>
-  </div>
-
-  <!-- Teste A/B: Garantia -->
-  <div class="experiment-container">
-    <div id="garantia-test"></div>
-  </div>
-
-  <!-- SDK Scripts -->
-  <script src="https://testly.com.br/flow.js?experimentId=EXPERIMENT_1&elementId=headline-test&apiKey=SUA_API_KEY"></script>
-  <script src="https://testly.com.br/flow.js?experimentId=EXPERIMENT_2&elementId=cta-principal&apiKey=SUA_API_KEY"></script>
-  <script src="https://testly.com.br/flow.js?experimentId=EXPERIMENT_3&elementId=garantia-test&apiKey=SUA_API_KEY"></script>
-</body>
-</html>
+  return (
+    <button onClick={() => trackGlobal('purchase_completed')}>
+      Finalizar Compra
+    </button>
+  );
+}
 ```
 
-<Note>
-  Você pode executar múltiplos experimentos na mesma página! Apenas certifique-se de usar IDs únicos para cada container.
-</Note>
+✅ **Quando usar**:
+
+- Eventos de negócio importantes (compras, cadastros)
+- Ações que impactam múltiplos experimentos
+- Métricas globais do funil
 
 ---
 
-## Debug e Troubleshooting
+## Exemplo Completo: Landing Page
 
-### Ativar modo debug
+Aqui está um exemplo completo de uma landing page com múltiplos testes A/B:
 
-Adicione `&debug=true` ao final da URL do script:
+```tsx pages/landing.tsx
+import { useExperiment, useConversion } from '@testly/react';
 
-```html
-<script src="https://testly/flow.js?experimentId=...&debug=true"></script>
+function HeroSection() {
+  const { variant, convert } = useExperiment('hero-headline-test');
+
+  return (
+    <section className="hero">
+      {variant === 'variant-b' ? (
+        <h1>Valide suas ideias com dados reais</h1>
+      ) : (
+        <h1>Teste A/B para founders devs</h1>
+      )}
+      
+      <button onClick={() => convert('hero_cta_clicked')}>
+        Começar Grátis
+      </button>
+    </section>
+  );
+}
+
+function PricingSection() {
+  const { variant, convert } = useExperiment('pricing-layout-test');
+
+  if (variant === 'variant-b') {
+    return (
+      <section className="pricing-3-columns">
+        {/* Layout com 3 colunas */}
+        <PricingCard 
+          plan="Free" 
+          onSelect={() => convert('plan_selected')} 
+        />
+        <PricingCard 
+          plan="Pro" 
+          onSelect={() => convert('plan_selected')} 
+        />
+        <PricingCard 
+          plan="Enterprise" 
+          onSelect={() => convert('plan_selected')} 
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section className="pricing-2-columns">
+      {/* Layout com 2 colunas */}
+      <PricingCard 
+        plan="Free" 
+        onSelect={() => convert('plan_selected')} 
+      />
+      <PricingCard 
+        plan="Pro" 
+        onSelect={() => convert('plan_selected')} 
+      />
+    </section>
+  );
+}
+
+function SignupButton() {
+  const trackGlobal = useConversion();
+
+  const handleSignup = () => {
+    trackGlobal('signup_completed'); // Conta para TODOS os experimentos
+    window.location.href = '/dashboard';
+  };
+
+  return (
+    <button onClick={handleSignup}>
+      Criar Conta Grátis
+    </button>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <main>
+      <HeroSection />
+      <PricingSection />
+      <SignupButton />
+    </main>
+  );
+}
 ```
 
-### Logs no console
+---
 
-Você verá informações detalhadas:
+## Configuração Avançada
+
+### Debug Mode
+
+Ative logs detalhados durante o desenvolvimento:
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: process.env.NODE_ENV === 'development',
+    dedupConversions: true // Padrão, previne conversões duplicadas
+  }}
+>
+```
+
+**Logs que você verá**:
 
 ```
-[Experiment SDK] userId 60516e02-bb73-469c-9043-fafa305f7a30
-[Experiment SDK] Dados recebidos da API: {...}
-[Experiment SDK] Variante selecionada: {id: "...", name: "Variant A"}
-[Experiment SDK] Script renderizado no container
-[Experiment SDK] Evento registrado impression e00326a7...
+[Testly] ✅ Experiment loaded: homepage-cta-test
+[Testly] 👤 User assigned to: variant-b
+[Testly] 📊 Impression recorded
+[Testly] 🎯 Conversion recorded: cta_clicked
 ```
 
-### Problemas comuns
+### Variantes Customizadas
+
+Você pode renderizar qualquer coisa baseado na variante:
+
+```tsx
+const { variant } = useExperiment('feature-test');
+
+return (
+  <div>
+    {variant === 'variant-b' && <NewFeature />}
+    {variant === 'variant-c' && <AlternativeFeature />}
+    {variant === 'control' && <OriginalFeature />}
+  </div>
+);
+```
+
+### Múltiplos Experimentos
+
+Você pode rodar vários experimentos na mesma página:
+
+```tsx
+function ProductPage() {
+  const heroTest = useExperiment('hero-test');
+  const pricingTest = useExperiment('pricing-test');
+  const ctaTest = useExperiment('cta-test');
+
+  return (
+    <>
+      <Hero variant={heroTest.variant} convert={heroTest.convert} />
+      <Pricing variant={pricingTest.variant} convert={pricingTest.convert} />
+      <CTA variant={ctaTest.variant} convert={ctaTest.convert} />
+    </>
+  );
+}
+```
+
+---
+
+## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Nada aparece no elemento" icon="circle-xmark">
-    Verifique se o `elementId` está correto e se o elemento existe no HTML antes do script ser executado.
+  <Accordion title="Erro: 'TestlyProvider' não encontrado" icon="circle-xmark">
+    **Solução**: Certifique-se de que instalou o pacote corretamente:
+
+    ```bash
+    npm install @testly/react
+    ```
+
+    E que está importando corretamente:
+
+    ```tsx
+    import { TestlyProvider } from '@testly/react';
+    ```
   </Accordion>
-  <Accordion title="Erro de CORS" icon="shield-halved">
-    Certifique-se de usar a versão mais recente do SDK (CORS já está configurado no servidor).
+  <Accordion title="Variante não muda ao recarregar" icon="arrows-rotate">
+    **Isso é esperado!** O SDK usa cache local para manter consistência.
+
+    Para testar diferentes variantes:
+
+    1. Abra o DevTools (F12)
+    2. Vá em **Application** → **Local Storage**
+    3. Limpe as chaves que começam com `testly-`
+    4. Recarregue a página
+
+    Ou use navegação anônima para cada teste.
   </Accordion>
-  <Accordion title="Variante não muda" icon="arrows-rotate">
-    O SDK usa `localStorage` para manter consistência. Limpe o cache ou use navegação anônima para testar diferentes variantes.
+  <Accordion title="Conversões não aparecem no dashboard" icon="chart-line">
+    **Checklist**:
+
+    - ✅ Você chamou `convert('event_name')`?
+    - ✅ O evento está sendo disparado (verifique com `debug: true`)?
+    - ✅ Sua API Key está correta?
+    - ✅ O experimento está **ativo** no dashboard?
+
+    Ative o debug mode e verifique os logs:
+
+    ```tsx
+    config={{ debug: true }}
+    ```
   </Accordion>
-  <Accordion title="Conversões não registram" icon="hand-pointer">
-    Verifique se o elemento clicável está dentro da variante renderizada pelo SDK.
+  <Accordion title="Erro: 'TRACKING BLOCKED'" icon="shield-halved">
+    Esse erro significa que algum ID está faltando. Verifique:
+
+    - O `experimentId` passado para `useExperiment()` está correto?
+    - O experimento existe no dashboard?
+    - A API Key tem permissão para acessar esse experimento?
+
+    Exemplo correto:
+
+    ```tsx
+    useExperiment('homepage-cta-test') // ID do dashboard
+    ```
+  </Accordion>
+  <Accordion title="TypeScript: Tipos não encontrados" icon="code">
+    O pacote já vem com tipos incluídos. Se tiver problemas:
+
+    ```json tsconfig.json
+    {
+      "compilerOptions": {
+        "moduleResolution": "node",
+        "esModuleInterop": true
+      }
+    }
+    ```
   </Accordion>
 </AccordionGroup>
-
-### Limpar cache local
-
-Para testar diferentes variantes, abra o console e execute:
-
-```javascript
-// Limpar TODOS os dados do experimento
-localStorage.clear();
-
-// Ou limpar um experimento específico
-localStorage.removeItem('experiment-SEU_EXPERIMENT_ID-variation');
-localStorage.removeItem('experiment-SEU_EXPERIMENT_ID-user-id');
-localStorage.removeItem('experiment-SEU_EXPERIMENT_ID-impression-VARIANT_ID');
-```
-
----
-
-## Segurança
-
-<CardGroup cols={2}>
-  <Card title="API Keys Únicas" icon="key">
-    Cada API Key é única por usuário
-  </Card>
-  <Card title="Isolamento de Dados" icon="lock">
-    Usuários só acessam seus próprios experimentos
-  </Card>
-  <Card title="Validação Server-Side" icon="server">
-    Variantes são validadas no servidor
-  </Card>
-  <Card title="CORS Configurado" icon="globe">
-    Permite qualquer origem (seguro via API Key)
-  </Card>
-</CardGroup>
 
 ---
 
 ## Boas Práticas
 
-<AccordionGroup>
-  <Accordion title="Teste apenas UMA variável por vez" icon="bullseye">
-    ❌ **Não teste**: cor do botão + texto + posição ao mesmo tempo
+### 1. Sempre use fallbacks
 
-    ✅ **Teste**: apenas a cor do botão
+```tsx
+const { variant, loading, error } = useExperiment('test');
 
-    Isso garante que você saiba exatamente qual mudança impactou os resultados.
-  </Accordion>
-  <Accordion title="Aguarde significância estatística" icon="chart-line">
-    - Mínimo de 100-200 conversões por variante
-    - Aguarde pelo menos 1-2 semanas de teste
-    - Use calculadoras de significância estatística
+if (loading) return <Skeleton />; // ✅ Bom
+if (error) return <OriginalVersion />; // ✅ Bom
 
-    Decisões precipitadas podem levar a conclusões erradas.
-  </Accordion>
-  <Accordion title="Documente seus testes" icon="clipboard">
-    - Anote hipóteses antes do teste
-    - Registre os resultados
-    - Compartilhe learnings com o time
+// ❌ Ruim: Não fazer nada durante loading/error
+```
 
-    A documentação ajuda a construir conhecimento ao longo do tempo.
-  </Accordion>
-  <Accordion title="Não mude variantes durante o teste" icon="ban">
-    - Pode invalidar os resultados
-    - Se precisar mudar, crie um novo experimento
+### 2. Nomeie eventos de conversão de forma clara
 
-    Alterações durante o teste podem comprometer a validade estatística.
-  </Accordion>
-</AccordionGroup>
+```tsx
+// ✅ Bom: descritivo e único
+convert('hero_cta_clicked')
+convert('pricing_plan_selected')
+convert('trial_started')
+
+// ❌ Ruim: genérico e ambíguo
+convert('click')
+convert('button')
+convert('event')
+```
+
+### 3. Teste apenas UMA variável por vez
+
+```tsx
+// ✅ Bom: Testa apenas o texto do botão
+variant === 'b' ? 'Comece Grátis' : 'Experimente Agora'
+
+// ❌ Ruim: Muda texto E cor E tamanho
+variant === 'b' ? (
+  <button className="big blue">Texto Diferente</button>
+) : (
+  <button className="small red">Texto Original</button>
+)
+```
+
+### 4. Use variáveis de ambiente
+
+```tsx
+// ✅ Bom
+apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+
+// ❌ Ruim: API Key hardcoded
+apiKey="b4e46e6992744175dc521ac4b72f259afa648280"
+```
+
+### 5. Aguarde significância estatística
+
+- Mínimo de **100-200 conversões** por variante
+- Aguarde pelo menos **1-2 semanas** de teste
+- Não mude variantes durante o teste
+- Use calculadoras de significância estatística
 
 ---
 
 ## Próximos Passos
 
-<CardGroup cols={2}>
-  <Card title="Implementar o SDK" icon="code" href="#">
-    Adicione o script no seu site
+<Steps>
+  <Step title="Crie mais experimentos">
+    Teste outros elementos: headlines, pricing, formulários, onboarding
+  </Step>
+  <Step title="Monitore resultados">
+    Acompanhe métricas no [dashboard](https://testly.com/dashboard)
+  </Step>
+  <Step title="Aprenda técnicas avançadas">
+    Explore a [documentação completa](/docs) para casos de uso avançados
+  </Step>
+  <Step title="Compartilhe resultados">
+    Documente seus aprendizados e compartilhe com o time
+  </Step>
+</Steps>
+
+---
+
+## Recursos Adicionais
+
+<CardGroup cols={3}>
+  <Card title="Exemplos" icon="code" href="/examples">
+    Veja casos de uso reais
   </Card>
-  <Card title="Criar Variantes" icon="wand-magic-sparkles" href="#">
-    Desenvolva variantes criativas no dashboard
+  <Card title="API Reference" icon="book" href="/api-reference">
+    Documentação técnica completa
   </Card>
-  <Card title="Monitorar Resultados" icon="chart-mixed" href="#">
-    Acompanhe métricas em tempo real
-  </Card>
-  <Card title="Iterar e Otimizar" icon="rocket" href="#">
-    Melhore baseado nos dados coletados
+  <Card title="Discord" icon="discord" href="https://discord.gg/testly">
+    Entre na comunidade
   </Card>
 </CardGroup>
 
 ---
 
-## Suporte
+## Precisa de Ajuda?
 
-Precisa de ajuda? Entre em contato:
+<Card title="Suporte" icon="life-ring" href="mailto:support@testly.com">
+  Entre em contato: [**support@testly.com**](mailto:support@testly.com)
 
-<CardGroup cols={3}>
-  <Card title="Email" icon="envelope" href="mailto:support@testly.com">
-    [support@testly.com.br](mailto:support@testly.com.br)
-  </Card>
-  <Card title="Chat ao Vivo" icon="comments" href="#">
-    Disponível no dashboard
-  </Card>
-  <Card title="Documentação" icon="book" href="https://docs.testly.com">
-    docs.testly.com.br
-  </Card>
-</CardGroup>
+  Respondemos em até 24h (geralmente muito mais rápido!)
+</Card>
 
-<Note>
-  **Versão**: 1.0.0 | **Última atualização**: Outubro 2025
-</Note>
+<Tip>
+  **Dica de ouro**: Ative o `debug: true` durante o desenvolvimento. Isso vai te salvar horas de debugging! 🐛
+</Tip>
+
+---
+
+[**Pronto para experimentar? Crie sua conta grátis 🚀**](https://testly.com/signup)
