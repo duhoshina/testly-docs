@@ -1,0 +1,577 @@
+---
+title: "useExperiment"
+description: "Hook principal para implementar testes A/B no seu componente React"
+---
+
+## Visão Geral
+
+O hook `useExperiment` é a forma principal de implementar experimentos A/B no Testly. Ele gerencia automaticamente:
+
+- ✅ Atribuição determinística de variantes
+- ✅ Registro automático de impressões
+- ✅ Cache local para consistência
+- ✅ Estados de loading e erro
+
+---
+
+## Uso Básico
+
+```tsx
+import { useExperiment } from '@testly/react';
+
+function MyComponent() {
+  const { variant, loading, error, convert } = useExperiment('experiment-id');
+
+  if (loading) return <div>Carregando...</div>;
+  if (error) return <div>Erro ao carregar experimento</div>;
+
+  return (
+    <div>
+      {variant === 'variant-b' ? (
+        <button onClick={() => convert('clicked')}>Variante B</button>
+      ) : (
+        <button onClick={() => convert('clicked')}>Variante A (Controle)</button>
+      )}
+    </div>
+  );
+}
+```
+
+---
+
+## Assinatura
+
+```typescript
+const {
+  variant,
+  loading,
+  error,
+  convert
+} = useExperiment(experimentId, options?);
+```
+
+### Parâmetros
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `experimentId` | `string` | ✅ Sim | ID único do experimento criado no dashboard |
+| `options` | `object` | ❌ Não | Opções de configuração do experimento |
+
+### Opções
+
+```typescript
+interface UseExperimentOptions {
+  userId?: string;        // ID customizado do usuário (opcional)
+  attributes?: object;    // Atributos customizados (em desenvolvimento)
+}
+```
+
+### Retorno
+
+```typescript
+interface UseExperimentResult {
+  variant: string | null;           // ID da variante atribuída
+  loading: boolean;                 // true enquanto carrega
+  error: Error | null;              // Erro se houver falha
+  convert: (eventName: string) => Promise<void>; // Função para registrar conversão
+}
+```
+
+---
+
+## Exemplos Práticos
+
+### Exemplo 1: Teste de CTA
+
+```tsx
+import { useExperiment } from '@testly/react';
+
+export function HeroSection() {
+  const { variant, loading, error, convert } = useExperiment('homepage-hero-cta');
+
+  if (loading) {
+    return (
+      <section className="hero">
+        <h1>Transforme seu produto com dados</h1>
+        <div className="skeleton-button" />
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error('Erro no experimento:', error);
+    // Fallback para versão original
+    return (
+      <section className="hero">
+        <h1>Transforme seu produto com dados</h1>
+        <button onClick={() => window.location.href = '/signup'}>
+          Comece Grátis
+        </button>
+      </section>
+    );
+  }
+
+  const handleClick = () => {
+    convert('hero_cta_clicked');
+    window.location.href = '/signup';
+  };
+
+  return (
+    <section className="hero">
+      <h1>Transforme seu produto com dados</h1>
+      
+      {variant === 'variant-b' ? (
+        <button onClick={handleClick} className="cta-primary">
+          Experimente Agora 🚀
+        </button>
+      ) : (
+        <button onClick={handleClick} className="cta-primary">
+          Comece Grátis
+        </button>
+      )}
+    </section>
+  );
+}
+```
+
+### Exemplo 2: Teste de Layout
+
+```tsx
+import { useExperiment } from '@testly/react';
+
+export function PricingSection() {
+  const { variant, convert } = useExperiment('pricing-layout');
+
+  const handleSelectPlan = (planName: string) => {
+    convert('plan_selected');
+    // Redirecionar para checkout
+  };
+
+  // Layout de 3 colunas (Variante B)
+  if (variant === 'variant-b') {
+    return (
+      <section className="pricing-3-col">
+        <PricingCard plan="Free" onSelect={handleSelectPlan} />
+        <PricingCard plan="Pro" onSelect={handleSelectPlan} featured />
+        <PricingCard plan="Enterprise" onSelect={handleSelectPlan} />
+      </section>
+    );
+  }
+
+  // Layout de 2 colunas (Controle)
+  return (
+    <section className="pricing-2-col">
+      <PricingCard plan="Free" onSelect={handleSelectPlan} />
+      <PricingCard plan="Pro" onSelect={handleSelectPlan} featured />
+    </section>
+  );
+}
+```
+
+### Exemplo 3: Teste de Múltiplas Variantes
+
+```tsx
+import { useExperiment } from '@testly/react';
+
+export function ProductHero() {
+  const { variant, convert } = useExperiment('hero-headline');
+
+  const headlines = {
+    'control': 'A/B Testing para Founders Devs',
+    'variant-b': 'Valide suas Ideias com Dados Reais',
+    'variant-c': 'Experimentos A/B sem Complicação',
+    'variant-d': 'Teste. Aprenda. Melhore.'
+  };
+
+  const handleCTA = () => {
+    convert('cta_clicked');
+    window.location.href = '/signup';
+  };
+
+  return (
+    <section className="hero">
+      <h1>{headlines[variant] || headlines.control}</h1>
+      <p>Implemente testes A/B em 5 minutos com nosso SDK React.</p>
+      <button onClick={handleCTA}>
+        Começar Grátis
+      </button>
+    </section>
+  );
+}
+```
+
+### Exemplo 4: Teste Condicional
+
+```tsx
+import { useExperiment } from '@testly/react';
+
+export function FeatureSection() {
+  const { variant, convert } = useExperiment('social-proof-test');
+
+  return (
+    <section className="features">
+      <h2>Por que escolher o Testly?</h2>
+      
+      <FeatureList />
+
+      {/* Mostrar social proof apenas na Variante B */}
+      {variant === 'variant-b' && (
+        <div className="social-proof">
+          <div className="testimonials">
+            <Testimonial author="João Silva" role="CTO @ StartupXYZ" />
+            <Testimonial author="Maria Santos" role="Founder @ SaaSCo" />
+          </div>
+          <button onClick={() => convert('social_proof_cta_clicked')}>
+            Ver Mais Depoimentos
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+```
+
+---
+
+## Comportamento do Hook
+
+### Primeira Renderização
+
+1. Hook é executado
+2. Verifica cache local
+3. Se não encontrar, chama a API
+4. API atribui variante de forma determinística
+5. **Impressão é registrada automaticamente**
+6. Variante é salva no cache
+7. Componente re-renderiza com a variante
+
+### Renderizações Subsequentes
+
+1. Hook busca variante do cache
+2. Retorna imediatamente (sem chamada à API)
+3. **Não registra nova impressão**
+4. Mantém consistência da experiência
+
+<Note>
+  O registro de impressão é **automático** e acontece apenas na primeira vez que o usuário vê o experimento. Você não precisa fazer nada!
+</Note>
+
+---
+
+## Conversões
+
+A função `convert()` permite registrar quando o usuário completa a ação desejada.
+
+### Sintaxe
+
+```typescript
+convert(eventName: string): Promise<void>
+```
+
+### Parâmetros
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `eventName` | `string` | Nome do evento de conversão (ex: `'clicked'`, `'signed_up'`) |
+
+### Exemplos de Conversão
+
+```tsx
+// Conversão simples
+<button onClick={() => convert('button_clicked')}>
+  Clique Aqui
+</button>
+
+// Conversão com ação posterior
+<button onClick={async () => {
+  await convert('form_submitted');
+  router.push('/thank-you');
+}}>
+  Enviar Formulário
+</button>
+
+// Conversão com tratamento de erro
+<button onClick={async () => {
+  try {
+    await convert('purchase_completed');
+    showSuccessMessage();
+  } catch (error) {
+    console.error('Falha ao registrar conversão:', error);
+    // A ação continua mesmo se o tracking falhar
+  }
+}}>
+  Finalizar Compra
+</button>
+```
+
+<Tip>
+  **Boas práticas para nomes de eventos**:
+  - Use snake_case: `button_clicked`, `form_submitted`
+  - Seja descritivo: `hero_cta_clicked` > `click`
+  - Use verbos no passado: `clicked`, `submitted`, `completed`
+</Tip>
+
+---
+
+## Estados de Loading e Erro
+
+### Loading State
+
+Sempre implemente um estado de loading para evitar Layout Shift:
+
+```tsx
+const { variant, loading } = useExperiment('test');
+
+if (loading) {
+  return <Skeleton />; // Placeholder com mesmo tamanho
+}
+```
+
+### Error State
+
+Sempre tenha um fallback para erros:
+
+```tsx
+const { variant, error } = useExperiment('test');
+
+if (error) {
+  // Log do erro (opcional)
+  console.error('Erro no experimento:', error);
+  
+  // Retornar versão original/segura
+  return <OriginalVersion />;
+}
+```
+
+<Warning>
+  **Importante**: Nunca deixe seu app quebrar por causa de um experimento. Sempre implemente fallbacks que mantêm a funcionalidade.
+</Warning>
+
+---
+
+## Múltiplos Experimentos
+
+Você pode rodar vários experimentos no mesmo componente:
+
+```tsx
+export function ProductPage() {
+  const heroTest = useExperiment('hero-test');
+  const pricingTest = useExperiment('pricing-test');
+  const ctaTest = useExperiment('cta-test');
+
+  return (
+    <div>
+      <Hero 
+        variant={heroTest.variant} 
+        onConvert={heroTest.convert} 
+      />
+      
+      <Pricing 
+        variant={pricingTest.variant}
+        onConvert={pricingTest.convert}
+      />
+      
+      <CTA 
+        variant={ctaTest.variant}
+        onConvert={ctaTest.convert}
+      />
+    </div>
+  );
+}
+```
+
+<Note>
+  Cada experimento é independente. Um usuário pode ver Variante A no hero e Variante B no pricing simultaneamente.
+</Note>
+
+---
+
+## User ID Customizado
+
+Por padrão, o Testly gera um `userId` único automaticamente. Você pode fornecer seu próprio:
+
+```tsx
+const { variant } = useExperiment('test', {
+  userId: user?.id || 'anonymous'
+});
+```
+
+**Quando usar**:
+- ✅ Você tem usuários autenticados
+- ✅ Quer rastrear o mesmo usuário em múltiplos dispositivos
+- ✅ Integração com seu sistema de analytics
+
+**Quando NÃO usar**:
+- ❌ Usuários anônimos (deixe o Testly gerar automaticamente)
+- ❌ Você não tem controle sobre o ID (pode causar colisões)
+
+---
+
+## Boas Práticas
+
+### 1. Sempre implemente Loading e Error
+
+```tsx
+// ✅ Bom
+const { variant, loading, error } = useExperiment('test');
+if (loading) return <Skeleton />;
+if (error) return <Fallback />;
+
+// ❌ Ruim (pode quebrar o app)
+const { variant } = useExperiment('test');
+return <div>{variant}</div>;
+```
+
+### 2. Nomear variantes de forma clara
+
+```tsx
+// ✅ Bom (descritivo)
+if (variant === 'variant-b') { ... }
+if (variant === 'control') { ... }
+
+// ❌ Ruim (confuso)
+if (variant === 'v2') { ... }
+if (variant === 'new') { ... }
+```
+
+### 3. Isolar lógica de experimento
+
+```tsx
+// ✅ Bom (fácil de remover depois)
+const { variant, convert } = useExperiment('test');
+const buttonText = variant === 'variant-b' 
+  ? 'Experimente Agora' 
+  : 'Comece Grátis';
+
+return <button onClick={() => convert('clicked')}>{buttonText}</button>;
+
+// ❌ Ruim (lógica espalhada)
+return variant === 'variant-b' ? (
+  <div>
+    <h1>Título B</h1>
+    <button>Experimente Agora</button>
+    <p>Copy B</p>
+  </div>
+) : (
+  <div>
+    <h1>Título A</h1>
+    <button>Comece Grátis</button>
+    <p>Copy A</p>
+  </div>
+);
+```
+
+### 4. Testar apenas UMA variável
+
+```tsx
+// ✅ Bom (testa apenas o texto)
+const buttonText = variant === 'variant-b' ? 'Texto B' : 'Texto A';
+
+// ❌ Ruim (muda texto + cor + tamanho)
+if (variant === 'variant-b') {
+  return <button className="big blue">Texto B</button>;
+}
+```
+
+---
+
+## TypeScript
+
+O hook é totalmente tipado:
+
+```typescript
+import { useExperiment } from '@testly/react';
+
+// Tipos básicos são inferidos automaticamente
+const { variant, loading, error, convert } = useExperiment('test');
+
+// Você pode especificar o tipo da variante
+type MyVariants = 'control' | 'variant-b' | 'variant-c';
+const { variant } = useExperiment<MyVariants>('test');
+
+// Agora variant tem autocomplete com os valores possíveis
+if (variant === 'variant-b') { // ✅ Autocomplete funciona
+  // ...
+}
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Variante sempre retorna null" icon="circle-xmark">
+    **Possíveis causas**:
+    1. Experimento não existe no dashboard
+    2. ID do experimento está incorreto
+    3. API Key inválida
+
+    **Solução**: 
+    - Verifique o ID no dashboard
+    - Ative `debug: true` no Provider para ver logs
+    - Verifique se a API Key está correta
+  </Accordion>
+
+  <Accordion title="Loading nunca termina" icon="spinner">
+    **Possíveis causas**:
+    1. Problema de rede
+    2. API Key inválida
+    3. Experimento inativo
+
+    **Solução**:
+    - Verifique o console do navegador
+    - Teste a API Key com outro experimento
+    - Certifique-se que o experimento está ativo no dashboard
+  </Accordion>
+
+  <Accordion title="Conversões não são registradas" icon="chart-line">
+    **Checklist**:
+    - ✅ Você está chamando `convert('event_name')`?
+    - ✅ O nome do evento é uma string válida?
+    - ✅ Você registrou impressão (automático) antes?
+    - ✅ Debug mode está ativo para ver logs?
+
+    **Teste**:
+    ```tsx
+    convert('test_event').then(() => {
+      console.log('✅ Conversão registrada');
+    }).catch(err => {
+      console.error('❌ Erro:', err);
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Variante muda a cada refresh" icon="arrows-rotate">
+    **Isso não deveria acontecer!**
+
+    O Testly usa cache local para garantir consistência.
+
+    **Possíveis causas**:
+    1. localStorage está sendo limpo
+    2. Navegação privada/anônima
+    3. Diferentes `userId` sendo gerados
+
+    **Solução**:
+    - Verifique se não há código limpando localStorage
+    - Use um `userId` fixo para testar
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="useConversion" icon="chart-line" href="/sdk/use-conversion">
+    Aprenda sobre conversões globais
+  </Card>
+  <Card title="Exemplos" icon="code" href="/examples/hero-section">
+    Veja implementações reais
+  </Card>
+  <Card title="Configuração" icon="gear" href="/sdk/configuration">
+    Opções avançadas do SDK
+  </Card>
+  <Card title="Debugging" icon="bug" href="/guides/debugging">
+    Guia completo de troubleshooting
+  </Card>
+</CardGroup>
