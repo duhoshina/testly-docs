@@ -1,0 +1,588 @@
+---
+title: "Best Practices"
+description: "Metodologias e boas práticas para experimentação eficaz com o Testly"
+---
+
+## Princípios Fundamentais
+
+A experimentação eficaz não é apenas sobre tecnologia — é sobre **metodologia**. Siga estes princípios para extrair o máximo valor dos seus testes A/B.
+
+<CardGroup cols={2}>
+  <Card title="Teste uma coisa por vez" icon="bullseye">
+    Mudanças isoladas geram insights claros
+  </Card>
+  <Card title="Formule hipóteses claras" icon="lightbulb">
+    Saiba o que você está testando e por quê
+  </Card>
+  <Card title="Aguarde significância" icon="chart-line">
+    Decisões prematuras levam a conclusões erradas
+  </Card>
+  <Card title="Documente tudo" icon="file-lines">
+    Aprendizados se acumulam ao longo do tempo
+  </Card>
+</CardGroup>
+
+---
+
+## 1. Formulação de Hipóteses
+
+Antes de criar qualquer experimento, formule uma hipótese clara usando este framework:
+
+### Framework: Se → Então → Porque
+
+```
+Se [MUDARMOS X]
+Então [ESPERAMOS Y]
+Porque [ACREDITAMOS Z]
+```
+
+### Exemplos
+
+#### ✅ Bom
+
+```
+Se mudarmos o CTA de "Comece Grátis" para "Experimente Agora"
+Então esperamos um aumento de 15% na taxa de conversão
+Porque "Experimente" transmite menos compromisso e remove fricção
+```
+
+#### ❌ Ruim
+
+```
+Vamos testar um botão diferente para ver se converte mais
+```
+
+<Tip>
+  **Por que isso importa**: Hipóteses claras te ajudam a interpretar resultados e construir conhecimento sobre seus usuários.
+</Tip>
+
+---
+
+## 2. Isolar Variáveis
+
+### Regra de Ouro: Teste UMA coisa por vez
+
+```tsx
+// ✅ BOM - Testa apenas o texto do CTA
+const { variant } = useExperiment('cta-text-test');
+
+const buttonText = variant === 'variant-b' 
+  ? 'Experimente Agora' 
+  : 'Comece Grátis';
+
+return (
+  <button className="btn-primary" onClick={handleClick}>
+    {buttonText}
+  </button>
+);
+
+// ❌ RUIM - Muda texto + cor + tamanho + posição
+if (variant === 'variant-b') {
+  return (
+    <button className="btn-large btn-green text-center">
+      Experimente Agora
+    </button>
+  );
+} else {
+  return (
+    <button className="btn-small btn-blue text-left">
+      Comece Grátis
+    </button>
+  );
+}
+```
+
+### Por que isso importa?
+
+Se você mudar múltiplas variáveis, não saberá o que causou a diferença:
+
+```
+Variante B ganhou com 20% mais conversões!
+
+Mas foi por causa de:
+- Texto diferente? 🤔
+- Cor verde? 🤔
+- Tamanho maior? 🤔
+- Posição centralizada? 🤔
+
+Resposta: Você nunca saberá.
+```
+
+---
+
+## 3. Tamanho da Amostra
+
+### Regra Prática
+
+| Tráfego Mensal | Tempo Mínimo | Conversões Mínimas |
+|----------------|--------------|-------------------|
+| 1.000 visitantes | 4-6 semanas | 50 por variante |
+| 5.000 visitantes | 2-3 semanas | 100 por variante |
+| 10.000+ visitantes | 1-2 semanas | 200 por variante |
+
+### Calculadora Simplificada
+
+```
+Amostra Mínima = 16 × (σ² / Δ²)
+
+Onde:
+σ = desvio padrão (geralmente ~0.5 para conversão)
+Δ = diferença mínima detectável (ex: 0.05 para 5%)
+
+Exemplo:
+Para detectar diferença de 5% com 95% de confiança:
+16 × (0.5² / 0.05²) = 1.600 visitantes por variante
+```
+
+<Note>
+  Use calculadoras online como [Evan Miller's AB Test Calculator](https://www.evanmiller.org/ab-testing/sample-size.html) para cálculos precisos.
+</Note>
+
+### Sinais de Que Você Precisa Esperar Mais
+
+- ❌ Menos de 100 conversões por variante
+- ❌ Teste rodando há menos de 1 semana
+- ❌ Taxa de conversão mudando drasticamente dia a dia
+- ❌ Significância estatística < 95%
+
+---
+
+## 4. Estrutura de Experimentos
+
+### Anatomia de um Bom Experimento
+
+```tsx
+// 1. HIPÓTESE (documentada no código)
+/**
+ * Experimento: Hero CTA Text
+ * 
+ * Hipótese: 
+ * Se mudarmos "Comece Grátis" para "Experimente Agora"
+ * Então teremos mais cliques (meta: +15%)
+ * Porque "Experimente" sugere menos compromisso
+ * 
+ * Data de início: 2024-01-15
+ * Tráfego alvo: 5.000 visitantes
+ * Duração esperada: 2 semanas
+ */
+
+export function HeroSection() {
+  const { variant, loading, error, convert } = useExperiment('hero-cta-text');
+
+  // 2. FALLBACK (sempre!)
+  if (loading) return <HeroSkeleton />;
+  if (error) {
+    console.error('Experiment error:', error);
+    return <HeroDefault />; // Versão que sempre funciona
+  }
+
+  // 3. LÓGICA CLARA
+  const ctaText = variant === 'variant-b' 
+    ? 'Experimente Agora' 
+    : 'Comece Grátis';
+
+  // 4. CONVERSÃO BEM DEFINIDA
+  const handleCTA = () => {
+    convert('hero_cta_clicked'); // Nome descritivo
+    window.location.href = '/signup';
+  };
+
+  // 5. IMPLEMENTAÇÃO LIMPA
+  return (
+    <section className="hero">
+      <h1>Transforme seu produto com dados</h1>
+      <button onClick={handleCTA} className="btn-primary">
+        {ctaText}
+      </button>
+    </section>
+  );
+}
+```
+
+---
+
+## 5. Quando Parar um Experimento
+
+### Critérios para Declarar Vencedor
+
+✅ **Todos estes devem ser verdadeiros:**
+
+1. **Significância estatística ≥ 95%**
+2. **Mínimo de 100-200 conversões por variante**
+3. **Teste rodou por pelo menos 1-2 semanas completas**
+4. **Resultado é consistente** (não oscila dia a dia)
+
+### Exemplo de Análise
+
+```
+Experimento: Hero CTA Text
+Duração: 14 dias
+Tráfego: 10.000 visitantes
+
+Variante A (Controle):
+- 5.000 visitantes
+- 250 conversões
+- Taxa: 5.0%
+
+Variante B:
+- 5.000 visitantes
+- 325 conversões
+- Taxa: 6.5%
+
+Resultado: +30% de melhoria
+Significância: 97%
+Decisão: ✅ Implementar Variante B
+```
+
+### Quando NÃO Declarar Vencedor
+
+```
+❌ Apenas 3 dias de teste
+❌ Apenas 50 conversões por variante
+❌ Significância de 85% (abaixo de 95%)
+❌ Taxa oscila muito (um dia +20%, outro dia -10%)
+```
+
+<Warning>
+  **Erro comum**: Parar o teste assim que vê uma variante "ganhando". Isso leva a falsos positivos. Aguarde significância estatística!
+</Warning>
+
+---
+
+## 6. Testes Sequenciais vs Simultâneos
+
+### Rodando Múltiplos Testes
+
+#### ✅ Testes Simultâneos (Recomendado)
+
+```tsx
+// Experimentos independentes na mesma página
+function LandingPage() {
+  const heroTest = useExperiment('hero-headline');
+  const pricingTest = useExperiment('pricing-layout');
+  const ctaTest = useExperiment('footer-cta');
+
+  return (
+    <>
+      <Hero variant={heroTest.variant} />
+      <Pricing variant={pricingTest.variant} />
+      <Footer variant={ctaTest.variant} />
+    </>
+  );
+}
+```
+
+**Quando usar**: Elementos **independentes** que não afetam uns aos outros.
+
+#### ❌ Testes Conflitantes (Evitar)
+
+```tsx
+// NÃO faça isso - testa o mesmo elemento
+const test1 = useExperiment('cta-text');      // Testa texto
+const test2 = useExperiment('cta-color');     // Testa cor
+const test3 = useExperiment('cta-position');  // Testa posição
+
+// Resultado: Confusão! Qual mudança causou a diferença?
+```
+
+### Priorização de Testes
+
+Quando você tem recursos limitados, priorize assim:
+
+| Prioridade | Critério | Exemplo |
+|-----------|----------|---------|
+| 🔴 Alta | Alto impacto + fácil de implementar | CTA principal da homepage |
+| 🟡 Média | Alto impacto + difícil de implementar | Redesign completo do pricing |
+| 🟢 Baixa | Baixo impacto + fácil | Cor de um link secundário |
+
+---
+
+## 7. Evitando Armadilhas Comuns
+
+### Armadilha 1: Peeking (Espiar Resultados)
+
+```
+❌ RUIM:
+Dia 1: Variante B está ganhando! (75% vs 55%)
+Dia 3: Variante A recuperou! (60% vs 62%)
+Dia 5: Empate técnico... (58% vs 58%)
+Dia 7: Variante B na frente! Vamos implementar! (61% vs 58%)
+
+✅ BOM:
+Defina duração ANTES: 14 dias
+Aguarde até o fim
+Analise com significância estatística
+Tome decisão baseada em dados completos
+```
+
+### Armadilha 2: Mudar o Teste no Meio
+
+```
+❌ RUIM:
+Semana 1: Testando "Comece Grátis" vs "Experimente Agora"
+Semana 2: Hmm, vou adicionar um emoji 🚀 na Variante B
+Resultado: Dados invalidados
+
+✅ BOM:
+Defina as variantes ANTES
+Não mude nada durante o teste
+Se precisar mudar, crie um NOVO experimento
+```
+
+### Armadilha 3: Ignorar Sazonalidade
+
+```
+❌ RUIM:
+Segunda-feira: Iniciou teste
+Sexta-feira: Variante B ganhando!
+Implementar agora!
+
+Problema: Comportamento varia por dia da semana
+
+✅ BOM:
+Rode pelo menos 1 semana COMPLETA
+Melhor ainda: 2 semanas completas
+Capture todos os dias da semana
+```
+
+### Armadilha 4: Winner's Curse
+
+```
+Você roda 20 testes A/B.
+Por pura chance estatística, 1 vai mostrar "melhoria" de 50%.
+Mas quando você implementa, o efeito desaparece.
+
+✅ SOLUÇÃO:
+- Espere significância ≥95%
+- Tenha tamanho de amostra adequado
+- Teste novamente para confirmar (se possível)
+```
+
+---
+
+## 8. Documentação de Experimentos
+
+### Template de Documentação
+
+```markdown
+# Experimento: Hero CTA Text
+
+## Hipótese
+Se mudarmos o CTA de "Comece Grátis" para "Experimente Agora"
+Então esperamos +15% de conversão
+Porque "Experimente" reduz percepção de compromisso
+
+## Setup
+- **ID**: `hero-cta-text`
+- **Página**: Homepage
+- **Início**: 2024-01-15
+- **Fim**: 2024-01-29
+- **Tráfego alvo**: 5.000 visitantes
+
+## Variantes
+- **Controle**: "Comece Grátis"
+- **Variante B**: "Experimente Agora"
+
+## Resultados
+- **Controle**: 5.000 visitantes, 250 conversões (5.0%)
+- **Variante B**: 5.000 visitantes, 325 conversões (6.5%)
+- **Melhoria**: +30%
+- **Significância**: 97%
+
+## Decisão
+✅ Implementar Variante B
+
+## Aprendizados
+- Copy que reduz compromisso performa melhor
+- Efeito foi consistente em mobile e desktop
+- Maior impacto em usuários novos (vs recorrentes)
+
+## Próximos Passos
+- Testar variação "Teste Grátis por 14 Dias"
+- Aplicar aprendizado em outras CTAs do site
+```
+
+### Ferramenta de Documentação
+
+Crie um documento compartilhado (Notion, Google Docs, Confluence) com todos os experimentos:
+
+```
+📊 Experimentos Testly
+
+🟢 Ativos
+├─ Hero CTA Text (2 semanas restantes)
+└─ Pricing Layout (4 semanas restantes)
+
+⏸️ Em Análise
+└─ Footer Social Proof (aguardando significância)
+
+✅ Completos
+├─ Homepage Headline → Variante B venceu (+25%)
+├─ Signup Form Fields → Empate (sem mudança)
+└─ Trial Duration Copy → Variante C venceu (+18%)
+
+❌ Invalidados
+└─ Mobile Menu (erro técnico, reiniciar)
+```
+
+---
+
+## 9. Métricas Além da Conversão
+
+Nem tudo se resume a taxa de conversão. Considere:
+
+### Métricas Secundárias
+
+| Métrica | O que mede | Quando usar |
+|---------|------------|-------------|
+| **Tempo na página** | Engajamento | Testar conteúdo |
+| **Taxa de rejeição** | Qualidade do tráfego | Testar headlines |
+| **Scroll depth** | Consumo de conteúdo | Testar layouts |
+| **Valor médio do pedido** | Receita | Testar pricing |
+| **Taxa de retorno** | Satisfação | Mudanças grandes |
+
+### Exemplo
+
+```
+Experimento: Pricing Layout
+
+Métricas Primárias:
+✅ Conversão: +15% (variante B vence)
+
+Métricas Secundárias:
+⚠️ Valor médio do pedido: -8% (variante B)
+⚠️ Taxa de cancelamento: +12% (variante B)
+
+Decisão: ❌ NÃO implementar
+Razão: Apesar de mais conversões, usuários escolhem planos mais baratos e cancelam mais
+```
+
+<Warning>
+  **Cuidado**: Otimizar apenas para conversão pode prejudicar métricas mais importantes como receita ou LTV.
+</Warning>
+
+---
+
+## 10. Checklist de Pré-Lançamento
+
+Antes de colocar qualquer experimento no ar:
+
+<AccordionGroup>
+  <Accordion title="✅ Hipótese e Planejamento" icon="clipboard-check">
+    - [ ] Hipótese está clara (Se → Então → Porque)
+    - [ ] Métrica de sucesso está definida
+    - [ ] Tamanho de amostra foi calculado
+    - [ ] Duração mínima foi definida (1-2 semanas)
+    - [ ] Experimento foi documentado
+  </Accordion>
+
+  <Accordion title="✅ Implementação Técnica" icon="code">
+    - [ ] useExperiment está implementado corretamente
+    - [ ] Estados de loading e error têm fallbacks
+    - [ ] Conversão está sendo rastreada corretamente
+    - [ ] Apenas UMA variável está sendo mudada
+    - [ ] Testado em ambiente de desenvolvimento
+  </Accordion>
+
+  <Accordion title="✅ Qualidade" icon="star">
+    - [ ] Variantes têm qualidade similar (sem typos, bugs)
+    - [ ] Design é consistente entre variantes
+    - [ ] Performance não foi afetada (CLS, LCP)
+    - [ ] Funciona em mobile e desktop
+    - [ ] Acessibilidade foi verificada
+  </Accordion>
+
+  <Accordion title="✅ Monitoramento" icon="chart-line">
+    - [ ] Dashboard do Testly está configurado
+    - [ ] Alertas estão ativos (se disponível)
+    - [ ] Time sabe que o experimento está rodando
+    - [ ] Calendário tem data de revisão marcada
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## 11. Casos de Uso por Tipo de Produto
+
+### SaaS B2B
+
+**Foco**: Trial e conversão para pago
+
+```
+Prioridade 1: Signup flow
+Prioridade 2: Pricing page
+Prioridade 3: Homepage hero
+Prioridade 4: Onboarding
+```
+
+### E-commerce
+
+**Foco**: Add to cart e checkout
+
+```
+Prioridade 1: Product page CTAs
+Prioridade 2: Checkout flow
+Prioridade 3: Homepage offers
+Prioridade 4: Category pages
+```
+
+### Conteúdo/Media
+
+**Foco**: Engajamento e newsletter signup
+
+```
+Prioridade 1: Newsletter signup placement
+Prioridade 2: Article headlines
+Prioridade 3: Social share buttons
+Prioridade 4: Related content
+```
+
+---
+
+## Resumo: Regras de Ouro
+
+<CardGroup cols={2}>
+  <Card title="1 coisa por vez" icon="1">
+    Isole variáveis para insights claros
+  </Card>
+  <Card title="Hipótese clara" icon="lightbulb">
+    Se → Então → Porque
+  </Card>
+  <Card title="Amostra adequada" icon="users">
+    Mínimo 100-200 conversões/variante
+  </Card>
+  <Card title="Tempo suficiente" icon="clock">
+    Pelo menos 1-2 semanas completas
+  </Card>
+  <Card title="Significância 95%+" icon="chart-line">
+    Não declare vencedor prematuramente
+  </Card>
+  <Card title="Documente tudo" icon="file-lines">
+    Aprendizados se acumulam
+  </Card>
+  <Card title="Fallbacks sempre" icon="shield">
+    Experimentos não quebram o produto
+  </Card>
+  <Card title="Métricas secundárias" icon="magnifying-glass-chart">
+    Conversão não é tudo
+  </Card>
+</CardGroup>
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Debugging" icon="bug" href="/guides/debugging">
+    Troubleshooting avançado
+  </Card>
+  <Card title="Significância Estatística" icon="calculator" href="/guides/statistical-significance">
+    Entenda a matemática por trás
+  </Card>
+  <Card title="Exemplos" icon="code" href="/examples/hero-section">
+    Veja implementações práticas
+  </Card>
+  <Card title="useExperiment" icon="flask" href="/sdk/use-experiment">
+    Hook principal do SDK
+  </Card>
+</CardGroup>
