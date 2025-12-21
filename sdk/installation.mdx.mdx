@@ -1,0 +1,392 @@
+---
+title: "Instalação"
+description: "Como instalar e configurar o Testly React SDK no seu projeto"
+---
+
+## Requisitos
+
+Antes de começar, certifique-se de ter:
+
+<CardGroup cols={2}>
+  <Card title="React 16.8+" icon="react">
+    Hooks são necessários para o SDK funcionar
+  </Card>
+  <Card title="Node.js 14+" icon="node-js">
+    Para gerenciamento de pacotes
+  </Card>
+  <Card title="Conta Testly" icon="user-check">
+    [Crie uma conta grátis](https://testly.com/signup)
+  </Card>
+  <Card title="API Key" icon="key">
+    Encontrada no [dashboard](https://testly.com/dashboard)
+  </Card>
+</CardGroup>
+
+---
+
+## Instalar o Pacote
+
+Escolha seu gerenciador de pacotes preferido:
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install @testly/react
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @testly/react
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @testly/react
+    ```
+  </Tab>
+  <Tab title="bun">
+    ```bash
+    bun add @testly/react
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Configurar o Provider
+
+O `TestlyProvider` deve envolver toda a sua aplicação. Ele gerencia o estado dos experimentos e se comunica com a API do Testly.
+
+<Tabs>
+  <Tab title="React (Vite/CRA)">
+    ```tsx src/App.tsx
+    import { TestlyProvider } from '@testly/react';
+    
+    function App() {
+      return (
+        <TestlyProvider apiKey={import.meta.env.VITE_TESTLY_API_KEY}>
+          {/* Sua aplicação */}
+        </TestlyProvider>
+      );
+    }
+    
+    export default App;
+    ```
+
+    **`Criar arquivo .env:`**
+
+    ```bash .env
+    VITE_TESTLY_API_KEY=sua_api_key_aqui
+    ```
+  </Tab>
+  <Tab title="Next.js App Router">
+    ```tsx app/layout.tsx
+    import { TestlyProvider } from '@testly/react';
+    
+    export default function RootLayout({
+      children,
+    }: {
+      children: React.ReactNode;
+    }) {
+      return (
+        <html lang="pt-BR">
+          <body>
+            <TestlyProvider apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}>
+              {children}
+            </TestlyProvider>
+          </body>
+        </html>
+      );
+    }
+    ```
+
+    **`Criar arquivo .env.local:`**
+
+    ```bash .env.local
+    NEXT_PUBLIC_TESTLY_API_KEY=sua_api_key_aqui
+    ```
+  </Tab>
+  <Tab title="Next.js Pages Router">
+    ```tsx pages/_app.tsx
+    import type { AppProps } from 'next/app';
+    import { TestlyProvider } from '@testly/react';
+    
+    export default function App({ Component, pageProps }: AppProps) {
+      return (
+        <TestlyProvider apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}>
+          <Component {...pageProps} />
+        </TestlyProvider>
+      );
+    }
+    ```
+
+    **`Criar arquivo .env.local:`**
+
+    ```bash .env.local
+    NEXT_PUBLIC_TESTLY_API_KEY=sua_api_key_aqui
+    ```
+  </Tab>
+  <Tab title="Remix">
+    ```tsx app/root.tsx
+    import { TestlyProvider } from '@testly/react';
+    
+    export default function App() {
+      return (
+        <html lang="pt-BR">
+          <head>
+            <Meta />
+            <Links />
+          </head>
+          <body>
+            <TestlyProvider apiKey={process.env.TESTLY_API_KEY}>
+              <Outlet />
+            </TestlyProvider>
+            <ScrollRestoration />
+            <Scripts />
+          </body>
+        </html>
+      );
+    }
+    ```
+
+    **`Criar arquivo .env:`**
+
+    ```bash .env
+    TESTLY_API_KEY=sua_api_key_aqui
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  **Importante**: Sempre use variáveis de ambiente para armazenar sua API Key. Nunca faça commit dela no código!
+</Warning>
+
+---
+
+## Configuração do Provider
+
+O `TestlyProvider` aceita as seguintes props:
+
+| Prop     | Tipo     | Obrigatório | Descrição                  |
+| -------- | -------- | ----------- | -------------------------- |
+| `apiKey` | `string` | ✅ Sim       | Sua chave de API do Testly |
+| `config` | `object` | ❌ Não       | Opções de configuração     |
+
+### Opções de Configuração
+
+```tsx
+<TestlyProvider 
+  apiKey="YOUR_API_KEY"
+  config={{
+    debug: boolean,              // Ativa logs detalhados (padrão: false)
+    dedupConversions: boolean,   // Previne conversões duplicadas (padrão: true)
+    baseUrl: string,             // URL customizada da API (opcional)
+  }}
+>
+```
+
+### Exemplo com Debug
+
+```tsx
+<TestlyProvider 
+  apiKey={process.env.NEXT_PUBLIC_TESTLY_API_KEY}
+  config={{
+    debug: process.env.NODE_ENV === 'development',
+    dedupConversions: true
+  }}
+>
+  <App />
+</TestlyProvider>
+```
+
+<Tip>
+  **Recomendado**: Ative `debug: true` em desenvolvimento para facilitar troubleshooting!
+</Tip>
+
+---
+
+## Verificar a Instalação
+
+Para garantir que tudo está funcionando, crie um componente de teste:
+
+```tsx components/TestInstallation.tsx
+'use client'; // Se estiver usando Next.js App Router
+
+import { useExperiment } from '@testly/react';
+
+export function TestInstallation() {
+  const { variant, loading, error } = useExperiment('test-installation');
+
+  if (loading) return <div>Carregando...</div>;
+  if (error) return <div>Erro: {error.message}</div>;
+
+  return (
+    <div>
+      <p>✅ Testly instalado com sucesso!</p>
+      <p>Variante: {variant}</p>
+    </div>
+  );
+}
+```
+
+<Note>
+  Você verá um erro porque o experimento `test-installation` ainda não existe. Isso é esperado! Vá para o [dashboard](https://testly.com/dashboard) e crie seu primeiro experimento.
+</Note>
+
+---
+
+## Configurar .gitignore
+
+Adicione suas variáveis de ambiente ao `.gitignore`:
+
+```bash .gitignore
+# Variáveis de ambiente
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+```
+
+---
+
+## TypeScript
+
+O Testly SDK já vem com tipos TypeScript incluídos. Nenhuma configuração adicional é necessária!
+
+```tsx
+import { TestlyProvider, useExperiment, useConversion } from '@testly/react';
+
+// Todos os tipos estão disponíveis automaticamente
+const { variant, loading, error, convert } = useExperiment('my-experiment');
+```
+
+Se você quiser tipos personalizados:
+
+```tsx
+interface ExperimentVariants {
+  'my-experiment': 'control' | 'variant-b' | 'variant-c';
+}
+
+const { variant } = useExperiment<ExperimentVariants['my-experiment']>('my-experiment');
+// variant agora tem autocomplete com os valores possíveis
+```
+
+---
+
+## Próximos Passos
+
+<Steps>
+  <Step title="Obter API Key">
+    Acesse o [dashboard](https://testly.com/dashboard) e copie sua API Key
+  </Step>
+  <Step title="Criar primeiro experimento">
+    No dashboard, crie um experimento de teste com 2 variantes
+  </Step>
+  <Step title="Implementar useExperiment">
+    Siga o guia [useExperiment](/sdk/use-experiment) para usar o hook
+  </Step>
+  <Step title="Testar conversões">
+    Aprenda a rastrear eventos com [useConversion](/sdk/use-conversion)
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Erro: 'Cannot find module @testly/react'" icon="circle-xmark">
+    **Solução**: Certifique-se de que instalou o pacote:
+
+    ```bash
+    npm install @testly/react
+    ```
+
+    E que reiniciou o servidor de desenvolvimento após a instalação.
+  </Accordion>
+  <Accordion title="Erro: 'apiKey is required'" icon="key">
+    **Solução**: Verifique se sua variável de ambiente está configurada:
+
+    1. Crie o arquivo `.env` ou `.env.local`
+    2. Adicione: `NEXT_PUBLIC_TESTLY_API_KEY=sua_chave`
+    3. Reinicie o servidor de desenvolvimento
+
+    **Next.js**: Variáveis devem começar com `NEXT_PUBLIC_` **Vite**: Variáveis devem começar com `VITE_`
+  </Accordion>
+  <Accordion title="Variável de ambiente retorna undefined" icon="circle-question">
+    **Checklist**:
+
+    - ✅ Arquivo `.env` está na raiz do projeto?
+    - ✅ Variável começa com o prefixo correto? (`NEXT_PUBLIC_` ou `VITE_`)
+    - ✅ Reiniciou o servidor após criar o arquivo?
+    - ✅ Não tem espaços ao redor do `=`?
+
+    ```bash
+    # ✅ Correto
+    NEXT_PUBLIC_TESTLY_API_KEY=abc123
+    
+    # ❌ Errado (tem espaços)
+    NEXT_PUBLIC_TESTLY_API_KEY = abc123
+    ```
+  </Accordion>
+  <Accordion title="Next.js: 'Hooks can only be called inside the body of a function component'" icon="triangle-exclamation">
+    **Solução**: Se estiver usando Next.js App Router, adicione `'use client'` no topo do arquivo:
+
+    ```tsx
+    'use client';
+    
+    import { useExperiment } from '@testly/react';
+    
+    export function MyComponent() {
+      // ...
+    }
+    ```
+
+    Componentes que usam hooks React precisam ser Client Components.
+  </Accordion>
+  <Accordion title="TypeScript: Tipos não são reconhecidos" icon="code">
+    **Solução**: Verifique seu `tsconfig.json`:
+
+    ```json tsconfig.json
+    {
+      "compilerOptions": {
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true
+      }
+    }
+    ```
+
+    Se o problema persistir, tente:
+
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Suporte
+
+Precisa de ajuda com a instalação?
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/testly">
+    Comunidade de desenvolvedores
+  </Card>
+  <Card title="Email" icon="envelope" href="mailto:support@testly.com">
+    [support@testly.com](mailto:support@testly.com)
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/testly/sdk-react/issues">
+    Reporte bugs ou sugira features
+  </Card>
+  <Card title="Documentação" icon="book" href="/quickstart">
+    Guia rápido de 5 minutos
+  </Card>
+</CardGroup>
