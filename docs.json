@@ -81,24 +81,10 @@
       ]
     },
     {
-      "group": "Experimentos",
+      "group": "Endpoints",
       "pages": [
-        "api-reference/experiments/list",
-        "api-reference/experiments/get",
-        "api-reference/experiments/create"
-      ]
-    },
-    {
-      "group": "Variantes",
-      "pages": [
-        "api-reference/variants/assign"
-      ]
-    },
-    {
-      "group": "Eventos",
-      "pages": [
-        "api-reference/events/impression",
-        "api-reference/events/conversion"
+        "api-reference/experiments/get-variant",
+        "api-reference/experiments/track-event",
       ]
     }
   ]
