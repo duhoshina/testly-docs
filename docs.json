@@ -71,28 +71,39 @@
         ]
       },
       {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "Visão Geral",
-            "pages": [
-              "api-reference/introduction",
-              "api-reference/authentication"
-            ]
-          },
-          {
-            "group": "Endpoints",
-            "pages": [
-              "api-reference/experiments/list",
-              "api-reference/experiments/get",
-              "api-reference/experiments/create",
-              "api-reference/variants/assign",
-              "api-reference/events/impression",
-              "api-reference/events/conversion"
-            ]
-          }
-        ]
-      }
+  "tab": "API Reference",
+  "groups": [
+    {
+      "group": "Visão Geral",
+      "pages": [
+        "api-reference/introduction",
+        "api-reference/authentication"
+      ]
+    },
+    {
+      "group": "Experimentos",
+      "pages": [
+        "api-reference/experiments/list",
+        "api-reference/experiments/get",
+        "api-reference/experiments/create"
+      ]
+    },
+    {
+      "group": "Variantes",
+      "pages": [
+        "api-reference/variants/assign"
+      ]
+    },
+    {
+      "group": "Eventos",
+      "pages": [
+        "api-reference/events/impression",
+        "api-reference/events/conversion"
+      ]
+    }
+  ]
+}
+
     ],
     "global": {
       "anchors": [
