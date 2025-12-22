@@ -98,12 +98,12 @@
       "anchors": [
         {
           "anchor": "Dashboard",
-          "href": "https://testly.com/dashboard",
+          "href": "https://app.testly.com/dashboard",
           "icon": "chart-line"
         },
         {
-          "anchor": "Comunidade",
-          "href": "https://discord.gg/testly",
+          "anchor": "Comunidade de SaaS",
+          "href": "https://discord.gg/SFwdTap4",
           "icon": "discord"
         },
         {
