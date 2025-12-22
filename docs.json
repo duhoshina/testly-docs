@@ -15,14 +15,14 @@
   "navbar": {
     "links": [
       {
-        "label": "Dashboard",
-        "href": "https://app.testly.com.br/"
+        "label": "Saiba Mais",
+        "href": "https://testly.com.br/?utm_source=testly_docs&utm_campaign=navbar&utm_content=primary-btn"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Acessar Site",
-      "href": "https://testly.com.br"
+      "label": "Acessar Plataforma",
+      "href": "https://app.testly.com.br/?utm_source=testly_docs&utm_campaign=navbar&utm_content=primary-btn"
     }
   },
   "navigation": {
@@ -127,7 +127,7 @@
   "footer": {
     "socials": {
       "x": "https://x.com/testly",
-      "github": "https://github.com/testly",
+      "github": "https://github.com/Testly-A-B/testly-react-sdk",
       "linkedin": "https://linkedin.com/company/testly"
     }
   }
