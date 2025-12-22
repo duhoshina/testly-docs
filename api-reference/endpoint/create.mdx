@@ -1,4 +1,663 @@
 ---
-title: 'Create Plant'
-openapi: 'POST /plants'
+title: "POST /track-event"
+description: "Registra impressões e conversões para seus experimentos"
 ---
+
+## Endpoint
+
+```
+POST https://api.testly.com/functions/v1/track-event
+```
+
+## Descrição
+
+Registra eventos de **impressão** (quando usuário vê uma variante) e **conversão** (quando usuário completa uma ação desejada).
+
+### Tipos de Eventos
+
+- **Impressão**: Registrada quando usuário vê a variante pela primeira vez
+- **Conversão**: Registrada quando usuário completa ação (clique, signup, compra, etc)
+
+---
+
+## Autenticação
+
+Envie sua API Key de uma das formas:
+
+### Opção 1: Header (Recomendado)
+
+```bash
+curl -X POST https://api.testly.com/functions/v1/track-event \
+  -H "x-testly-auth: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experiment_key": "homepage-hero-test",
+    "variant_key": "variant-b",
+    "user_id": "user_123",
+    "session_id": "session_abc",
+    "conversion_type": "cta_clicked"
+  }'
+```
+
+### Opção 2: Query Parameter
+
+```bash
+curl -X POST "https://api.testly.com/functions/v1/track-event?apikey=YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+<Warning>
+  **Segurança**: Sempre use o header `x-testly-auth` em produção. Query parameters podem aparecer em logs.
+</Warning>
+
+---
+
+## Body Parameters
+
+### Campos Obrigatórios
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `experiment_key` | `string` | Chave única do experimento |
+| `variant_key` | `string` | Chave da variante atribuída |
+| `user_id` | `string` | Identificador único do usuário |
+| `session_id` | `string` | ID da sessão do usuário |
+
+### Campos Opcionais
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `conversion_type` | `string \| null` | Nome do evento de conversão (ex: `cta_clicked`). Se null = impressão |
+| `user_agent` | `string` | User agent do navegador |
+| `metadata` | `object` | Dados customizados adicionais |
+
+---
+
+## Tipos de Evento
+
+### Impressão
+
+**Quando usar:** Usuário VIU a variante pela primeira vez
+
+```json
+{
+  "experiment_key": "homepage-hero-test",
+  "variant_key": "variant-b",
+  "user_id": "user_123",
+  "session_id": "session_abc",
+  "conversion_type": null,
+  "user_agent": "Mozilla/5.0...",
+  "metadata": {
+    "page": "/",
+    "device": "desktop"
+  }
+}
+```
+
+**Resultado:** Cria evento com `event_type: "impression"`
+
+### Conversão
+
+**Quando usar:** Usuário COMPLETOU uma ação desejada
+
+```json
+{
+  "experiment_key": "homepage-hero-test",
+  "variant_key": "variant-b",
+  "user_id": "user_123",
+  "session_id": "session_abc",
+  "conversion_type": "cta_clicked",
+  "user_agent": "Mozilla/5.0...",
+  "metadata": {
+    "button_text": "Comece Grátis",
+    "position": "hero"
+  }
+}
+```
+
+**Resultado:** Cria evento com `event_type: "conversion"` e `conversion_type: "cta_clicked"`
+
+---
+
+## Resposta
+
+### Sucesso (201 Created)
+
+```json
+{
+  "success": true
+}
+```
+
+### Erro: API Key Inválida (401 Unauthorized)
+
+```json
+{
+  "error": "Invalid Organization API Key"
+}
+```
+
+### Erro: Variante/Experimento Não Encontrado (400 Bad Request)
+
+```json
+{
+  "error": "Variant or Experiment not found for this organization"
+}
+```
+
+**Quando acontece:**
+- `experiment_key` não existe
+- `variant_key` não existe
+- Experimento não pertence à sua organização
+- Variante não pertence ao experimento especificado
+
+### Erro: Parâmetros Faltando (400 Bad Request)
+
+```json
+{
+  "error": "Missing required fields"
+}
+```
+
+---
+
+## Exemplos
+
+### JavaScript / Fetch
+
+```javascript
+async function trackEvent({
+  experimentKey,
+  variantKey,
+  userId,
+  sessionId,
+  conversionType = null,
+  metadata = {}
+}) {
+  const response = await fetch(
+    'https://api.testly.com/functions/v1/track-event',
+    {
+      method: 'POST',
+      headers: {
+        'x-testly-auth': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        experiment_key: experimentKey,
+        variant_key: variantKey,
+        user_id: userId,
+        session_id: sessionId,
+        conversion_type: conversionType,
+        user_agent: navigator.userAgent,
+        metadata
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+// Registrar impressão
+await trackEvent({
+  experimentKey: 'homepage-hero-test',
+  variantKey: 'variant-b',
+  userId: 'user_123',
+  sessionId: 'session_abc'
+});
+
+// Registrar conversão
+await trackEvent({
+  experimentKey: 'homepage-hero-test',
+  variantKey: 'variant-b',
+  userId: 'user_123',
+  sessionId: 'session_abc',
+  conversionType: 'cta_clicked',
+  metadata: { button_text: 'Comece Grátis' }
+});
+```
+
+### Python
+
+```python
+import requests
+
+def track_event(
+    experiment_key,
+    variant_key,
+    user_id,
+    session_id,
+    api_key,
+    conversion_type=None,
+    metadata=None
+):
+    response = requests.post(
+        'https://api.testly.com/functions/v1/track-event',
+        headers={
+            'x-testly-auth': api_key,
+            'Content-Type': 'application/json'
+        },
+        json={
+            'experiment_key': experiment_key,
+            'variant_key': variant_key,
+            'user_id': user_id,
+            'session_id': session_id,
+            'conversion_type': conversion_type,
+            'metadata': metadata or {}
+        }
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Registrar impressão
+track_event(
+    experiment_key='homepage-hero-test',
+    variant_key='variant-b',
+    user_id='user_123',
+    session_id='session_abc',
+    api_key='YOUR_API_KEY'
+)
+
+# Registrar conversão
+track_event(
+    experiment_key='homepage-hero-test',
+    variant_key='variant-b',
+    user_id='user_123',
+    session_id='session_abc',
+    api_key='YOUR_API_KEY',
+    conversion_type='cta_clicked',
+    metadata={'button_text': 'Comece Grátis'}
+)
+```
+
+### PHP
+
+```php
+<?php
+function trackEvent($data, $apiKey) {
+    $ch = curl_init('https://api.testly.com/functions/v1/track-event');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "x-testly-auth: $apiKey",
+        "Content-Type: application/json"
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    
+    $response = curl_exec($ch);
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($statusCode !== 201) {
+        throw new Exception("HTTP $statusCode: $response");
+    }
+    
+    return json_decode($response, true);
+}
+
+// Registrar impressão
+trackEvent([
+    'experiment_key' => 'homepage-hero-test',
+    'variant_key' => 'variant-b',
+    'user_id' => 'user_123',
+    'session_id' => 'session_abc',
+    'conversion_type' => null
+], 'YOUR_API_KEY');
+
+// Registrar conversão
+trackEvent([
+    'experiment_key' => 'homepage-hero-test',
+    'variant_key' => 'variant-b',
+    'user_id' => 'user_123',
+    'session_id' => 'session_abc',
+    'conversion_type' => 'cta_clicked',
+    'metadata' => ['button_text' => 'Comece Grátis']
+], 'YOUR_API_KEY');
+?>
+```
+
+### cURL
+
+```bash
+# Registrar impressão
+curl -X POST https://api.testly.com/functions/v1/track-event \
+  -H "x-testly-auth: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experiment_key": "homepage-hero-test",
+    "variant_key": "variant-b",
+    "user_id": "user_123",
+    "session_id": "session_abc",
+    "conversion_type": null
+  }'
+
+# Registrar conversão
+curl -X POST https://api.testly.com/functions/v1/track-event \
+  -H "x-testly-auth: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "experiment_key": "homepage-hero-test",
+    "variant_key": "variant-b",
+    "user_id": "user_123",
+    "session_id": "session_abc",
+    "conversion_type": "cta_clicked",
+    "metadata": {
+      "button_text": "Comece Grátis"
+    }
+  }'
+```
+
+---
+
+## Fluxo Completo
+
+### 1. Usuário Acessa Página
+
+```javascript
+// 1. Obter variante
+const { variant_key } = await fetch(
+  `https://api.testly.com/functions/v1/get-variant?experiment_key=homepage-hero&user_id=user_123`,
+  { headers: { 'x-testly-auth': 'YOUR_API_KEY' } }
+).then(r => r.json());
+
+// 2. Renderizar variante
+if (variant_key === 'variant-b') {
+  showVariantB();
+} else {
+  showVariantA();
+}
+
+// 3. Registrar impressão
+await fetch('https://api.testly.com/functions/v1/track-event', {
+  method: 'POST',
+  headers: {
+    'x-testly-auth': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    experiment_key: 'homepage-hero',
+    variant_key: variant_key,
+    user_id: 'user_123',
+    session_id: 'session_abc',
+    conversion_type: null // Impressão
+  })
+});
+```
+
+### 2. Usuário Clica no CTA
+
+```javascript
+button.addEventListener('click', async () => {
+  // Registrar conversão
+  await fetch('https://api.testly.com/functions/v1/track-event', {
+    method: 'POST',
+    headers: {
+      'x-testly-auth': 'YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      experiment_key: 'homepage-hero',
+      variant_key: variant_key,
+      user_id: 'user_123',
+      session_id: 'session_abc',
+      conversion_type: 'cta_clicked' // Conversão
+    })
+  });
+  
+  // Prosseguir com ação
+  window.location.href = '/signup';
+});
+```
+
+---
+
+## Deduplicação
+
+### Impressões
+
+Você deve implementar lógica para **não registrar impressões duplicadas** na mesma sessão:
+
+```javascript
+// Verificar se já registrou impressão
+const impressionKey = `impression_${experimentKey}_${sessionId}`;
+
+if (!sessionStorage.getItem(impressionKey)) {
+  // Registrar impressão
+  await trackEvent({ 
+    experimentKey, 
+    variantKey, 
+    userId, 
+    sessionId 
+  });
+  
+  // Marcar como registrada
+  sessionStorage.setItem(impressionKey, 'true');
+}
+```
+
+### Conversões
+
+Para evitar conversões duplicadas:
+
+```javascript
+// Conversões únicas por sessão
+const conversionKey = `conversion_${experimentKey}_${conversionType}_${sessionId}`;
+
+if (!sessionStorage.getItem(conversionKey)) {
+  await trackEvent({ 
+    experimentKey, 
+    variantKey, 
+    userId, 
+    sessionId,
+    conversionType 
+  });
+  
+  sessionStorage.setItem(conversionKey, 'true');
+}
+```
+
+<Note>
+  O SDK React já implementa deduplicação automaticamente. Você só precisa se preocupar com isso ao usar a API diretamente.
+</Note>
+
+---
+
+## Boas Práticas
+
+### 1. Sempre registre impressão ANTES de conversão
+
+```javascript
+// ✅ CORRETO
+await trackImpression();
+// Usuário vê a variante
+await trackConversion(); // Só depois de impressão
+
+// ❌ ERRADO
+await trackConversion(); // Sem impressão antes = dados inválidos
+```
+
+### 2. Use metadata para enriquecer dados
+
+```javascript
+await trackEvent({
+  experimentKey: 'pricing-test',
+  variantKey: 'variant-b',
+  userId: 'user_123',
+  sessionId: 'session_abc',
+  conversionType: 'plan_selected',
+  metadata: {
+    plan: 'pro',
+    price: 29,
+    billing_cycle: 'monthly',
+    referrer: document.referrer,
+    viewport: `${window.innerWidth}x${window.innerHeight}`
+  }
+});
+```
+
+### 3. Não bloqueie a UX
+
+```javascript
+// ❌ RUIM - Aguarda tracking antes de navegar
+await trackEvent({ ... });
+window.location.href = '/next-page';
+
+// ✅ BOM - Fire and forget
+trackEvent({ ... }).catch(console.error);
+window.location.href = '/next-page';
+```
+
+### 4. Trate erros gracefully
+
+```javascript
+async function trackEventSafe(data) {
+  try {
+    await trackEvent(data);
+  } catch (error) {
+    console.error('Tracking failed:', error);
+    // Não quebra a experiência do usuário
+  }
+}
+```
+
+---
+
+## Metadata Recomendado
+
+### Impressões
+
+```javascript
+{
+  "metadata": {
+    "page": "/",
+    "referrer": "https://google.com",
+    "device": "desktop",
+    "viewport": "1920x1080",
+    "browser": "Chrome",
+    "os": "MacOS"
+  }
+}
+```
+
+### Conversões
+
+```javascript
+{
+  "metadata": {
+    "button_text": "Comece Grátis",
+    "button_position": "hero",
+    "time_on_page": 45, // segundos
+    "scroll_depth": 80, // porcentagem
+    "clicks_before_conversion": 3
+  }
+}
+```
+
+---
+
+## Rate Limits
+
+| Plano | Limite |
+|-------|--------|
+| **Free** | 100 req/min |
+| **Pro** | 1.000 req/min |
+| **Enterprise** | Customizável |
+
+**Batching recomendado:**
+
+Se você tem muito tráfego, considere fazer batch de eventos:
+
+```javascript
+const eventQueue = [];
+
+function queueEvent(event) {
+  eventQueue.push(event);
+  
+  // Enviar em lote a cada 5 segundos
+  if (eventQueue.length >= 10) {
+    flushEvents();
+  }
+}
+
+async function flushEvents() {
+  const batch = eventQueue.splice(0, 10);
+  
+  await Promise.all(
+    batch.map(event => trackEvent(event).catch(console.error))
+  );
+}
+
+setInterval(flushEvents, 5000);
+```
+
+---
+
+## Troubleshooting
+
+### Erro: "Variant or Experiment not found"
+
+**Possíveis causas:**
+1. `experiment_key` está errado (case-sensitive)
+2. `variant_key` está errado
+3. Experimento foi deletado
+4. Variante não pertence ao experimento
+
+**Solução:**
+```javascript
+// Sempre use as keys retornadas por get-variant
+const { variant_key, experiment_key } = await getVariant(...);
+
+// Use exatamente essas keys no track-event
+await trackEvent({
+  experiment_key, // ✅ Da resposta do get-variant
+  variant_key,    // ✅ Da resposta do get-variant
+  ...
+});
+```
+
+### Eventos não aparecem no dashboard
+
+**Checklist:**
+1. ✅ API Key está correta?
+2. ✅ Você registrou impressão antes?
+3. ✅ `conversion_type` está null para impressões?
+4. ✅ Response foi 201 Created?
+5. ✅ Experimento está ativo?
+
+### Performance issues
+
+Se você tem muito tráfego:
+
+```javascript
+// Use async/await com Promise.all para paralelizar
+await Promise.all([
+  trackImpression(),
+  otherAsyncTask()
+]);
+
+// Ou fire-and-forget
+trackImpression().catch(console.error);
+```
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Get Variant" icon="shuffle" href="/api-reference/get-variant">
+    Atribuir variantes aos usuários
+  </Card>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Detalhes sobre API Keys
+  </Card>
+  <Card title="SDK React" icon="react" href="/sdk/installation">
+    Use o SDK oficial (tracking automático)
+  </Card>
+  <Card title="Best Practices" icon="star" href="/guides/best-practices">
+    Metodologias de experimentação
+  </Card>
+</CardGroup>
