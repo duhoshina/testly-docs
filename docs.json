@@ -84,7 +84,7 @@
       "group": "Endpoints",
       "pages": [
         "api-reference/experiments/get-variant",
-        "api-reference/experiments/track-event",
+        "api-reference/experiments/track-event"
       ]
     }
   ]
