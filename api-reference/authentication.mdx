@@ -1,0 +1,535 @@
+---
+title: "Autenticação"
+description: "Como autenticar suas requisições à API do Testly"
+---
+
+## Visão Geral
+
+A API do Testly usa **API Keys** para autenticação. Cada organização possui uma chave única que deve ser incluída em todas as requisições.
+
+<CardGroup cols={2}>
+  <Card title="Simples" icon="key">
+    Uma chave por organização
+  </Card>
+  <Card title="Seguro" icon="shield">
+    Comunicação via HTTPS
+  </Card>
+  <Card title="Flexível" icon="arrows-split-up-and-left">
+    Header ou query parameter
+  </Card>
+  <Card title="Revogável" icon="rotate">
+    Regenere a qualquer momento
+  </Card>
+</CardGroup>
+
+---
+
+## Obter sua API Key
+
+### 1. Acesse o Dashboard
+
+Vá para [testly.com/dashboard](https://testly.com/dashboard) e faça login.
+
+### 2. Navegue até Configurações
+
+Clique em **Configurações** → **API Keys** no menu lateral.
+
+### 3. Copie sua Chave
+
+Você verá sua API Key no formato:
+
+```
+testly_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz
+```
+
+<Warning>
+  **Importante**: Trate sua API Key como uma senha. Nunca a exponha em código público (GitHub, fóruns, etc).
+</Warning>
+
+---
+
+## Como Usar
+
+Você pode enviar sua API Key de **duas formas**:
+
+### Opção 1: Header (Recomendado)
+
+```bash
+curl https://api.testly.com/functions/v1/get-variant \
+  -H "x-testly-auth: YOUR_API_KEY" \
+  -G \
+  --data-urlencode "experiment_key=test" \
+  --data-urlencode "user_id=user_123"
+```
+
+**Vantagens:**
+- ✅ Mais seguro (não aparece em logs de URL)
+- ✅ Não conta para limite de tamanho de URL
+- ✅ Padrão da indústria
+
+### Opção 2: Query Parameter
+
+```bash
+curl "https://api.testly.com/functions/v1/get-variant?experiment_key=test&user_id=user_123&apikey=YOUR_API_KEY"
+```
+
+**Vantagens:**
+- ✅ Mais simples para testes rápidos
+- ✅ Funciona em ambientes que não suportam headers customizados
+
+**Desvantagens:**
+- ❌ API Key pode aparecer em logs de servidor
+- ❌ Pode ser capturada em histórico do navegador
+
+<Tip>
+  **Recomendação**: Use sempre o header `x-testly-auth` em produção. Use query parameter apenas para testes locais.
+</Tip>
+
+---
+
+## Exemplos por Linguagem
+
+### JavaScript / Fetch
+
+```javascript
+const apiKey = process.env.TESTLY_API_KEY;
+
+async function callTestlyAPI(endpoint, options = {}) {
+  const response = await fetch(`https://api.testly.com/functions/v1/${endpoint}`, {
+    ...options,
+    headers: {
+      'x-testly-auth': apiKey,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+// Uso
+const result = await callTestlyAPI('get-variant?experiment_key=test&user_id=123');
+```
+
+### Python
+
+```python
+import os
+import requests
+
+API_KEY = os.getenv('TESTLY_API_KEY')
+BASE_URL = 'https://api.testly.com/functions/v1'
+
+def call_testly_api(endpoint, method='GET', data=None):
+    headers = {
+        'x-testly-auth': API_KEY,
+        'Content-Type': 'application/json'
+    }
+    
+    url = f'{BASE_URL}/{endpoint}'
+    
+    if method == 'GET':
+        response = requests.get(url, headers=headers)
+    elif method == 'POST':
+        response = requests.post(url, headers=headers, json=data)
+    
+    response.raise_for_status()
+    return response.json()
+
+# Uso
+result = call_testly_api('get-variant?experiment_key=test&user_id=123')
+```
+
+### PHP
+
+```php
+<?php
+$apiKey = getenv('TESTLY_API_KEY');
+$baseUrl = 'https://api.testly.com/functions/v1';
+
+function callTestlyAPI($endpoint, $method = 'GET', $data = null) {
+    global $apiKey, $baseUrl;
+    
+    $ch = curl_init("$baseUrl/$endpoint");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "x-testly-auth: $apiKey",
+        "Content-Type: application/json"
+    ]);
+    
+    if ($method === 'POST') {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+    
+    $response = curl_exec($ch);
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($statusCode !== 200 && $statusCode !== 201) {
+        throw new Exception("HTTP $statusCode: $response");
+    }
+    
+    return json_decode($response, true);
+}
+
+// Uso
+$result = callTestlyAPI('get-variant?experiment_key=test&user_id=123');
+?>
+```
+
+### Node.js (Axios)
+
+```javascript
+const axios = require('axios');
+
+const testlyAPI = axios.create({
+  baseURL: 'https://api.testly.com/functions/v1',
+  headers: {
+    'x-testly-auth': process.env.TESTLY_API_KEY,
+    'Content-Type': 'application/json'
+  }
+});
+
+// Uso
+const response = await testlyAPI.get('/get-variant', {
+  params: {
+    experiment_key: 'test',
+    user_id: '123'
+  }
+});
+```
+
+---
+
+## Variáveis de Ambiente
+
+**Nunca** faça hardcode da sua API Key no código. Use variáveis de ambiente:
+
+### Node.js / Next.js
+
+```bash .env.local
+TESTLY_API_KEY=testly_abc123...
+# Ou para client-side (Next.js)
+NEXT_PUBLIC_TESTLY_API_KEY=testly_abc123...
+```
+
+```javascript
+const apiKey = process.env.TESTLY_API_KEY;
+// Ou
+const apiKey = process.env.NEXT_PUBLIC_TESTLY_API_KEY;
+```
+
+### Python
+
+```bash .env
+TESTLY_API_KEY=testly_abc123...
+```
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.getenv('TESTLY_API_KEY')
+```
+
+### PHP
+
+```bash .env
+TESTLY_API_KEY=testly_abc123...
+```
+
+```php
+<?php
+$apiKey = getenv('TESTLY_API_KEY');
+// Ou com vlucas/phpdotenv
+$apiKey = $_ENV['TESTLY_API_KEY'];
+?>
+```
+
+### Vercel / Netlify
+
+Adicione em **Environment Variables** no dashboard da plataforma:
+
+```
+Key: TESTLY_API_KEY
+Value: testly_abc123...
+```
+
+---
+
+## Segurança
+
+### ✅ Boas Práticas
+
+<AccordionGroup>
+  <Accordion title="Use variáveis de ambiente" icon="code">
+    ```javascript
+    // ✅ Bom
+    const apiKey = process.env.TESTLY_API_KEY;
+
+    // ❌ Ruim
+    const apiKey = 'testly_abc123...';
+    ```
+  </Accordion>
+
+  <Accordion title="Nunca commite no Git" icon="github">
+    ```bash .gitignore
+    # Adicione ao .gitignore
+    .env
+    .env.local
+    .env*.local
+    ```
+  </Accordion>
+
+  <Accordion title="Use HTTPS sempre" icon="lock">
+    ```javascript
+    // ✅ Bom
+    https://api.testly.com
+
+    // ❌ Ruim
+    http://api.testly.com
+    ```
+  </Accordion>
+
+  <Accordion title="Limite acesso em produção" icon="shield">
+    - Use diferentes API Keys para dev/prod
+    - Revogue keys comprometidas imediatamente
+    - Não exponha keys no client-side quando possível
+  </Accordion>
+
+  <Accordion title="Rotacione keys periodicamente" icon="rotate">
+    Considere gerar uma nova key a cada 3-6 meses como boa prática de segurança.
+  </Accordion>
+</AccordionGroup>
+
+### ❌ O que NÃO fazer
+
+<Warning>
+  **Nunca faça isso:**
+  
+  - ❌ Commitar API Key no GitHub
+  - ❌ Incluir em código client-side público
+  - ❌ Compartilhar em fóruns ou chat
+  - ❌ Enviar por email sem criptografia
+  - ❌ Usar HTTP ao invés de HTTPS
+</Warning>
+
+---
+
+## Gerenciamento de Keys
+
+### Ver Key Atual
+
+1. Dashboard → Configurações → API Keys
+2. Key é parcialmente mascarada: `testly_abc...xyz`
+3. Clique em "Mostrar" para ver completa
+
+### Regenerar Key
+
+<Steps>
+  <Step title="Acesse Configurações">
+    Dashboard → Configurações → API Keys
+  </Step>
+
+  <Step title="Clique em 'Regenerar'">
+    Confirme que deseja gerar nova key
+  </Step>
+
+  <Step title="Copie Nova Key">
+    A key antiga será **imediatamente invalidada**
+  </Step>
+
+  <Step title="Atualize em Todos os Lugares">
+    - Variáveis de ambiente
+    - CI/CD pipelines
+    - Documentação interna
+  </Step>
+</Steps>
+
+<Warning>
+  **Atenção**: Regenerar a key **invalida imediatamente** a anterior. Todas as requisições com a key antiga falharão.
+</Warning>
+
+---
+
+## Ambientes (Dev/Staging/Prod)
+
+### Estratégia Recomendada
+
+Use **diferentes organizações** para cada ambiente:
+
+```
+Organização Dev: org_dev_123
+API Key: testly_dev_abc...
+
+Organização Staging: org_staging_456  
+API Key: testly_staging_def...
+
+Organização Produção: org_prod_789
+API Key: testly_prod_ghi...
+```
+
+**Vantagens:**
+- ✅ Dados isolados entre ambientes
+- ✅ Pode deletar experimentos de dev sem afetar prod
+- ✅ Métricas limpas por ambiente
+- ✅ Fácil de auditar
+
+### Configuração
+
+```bash .env.development
+TESTLY_API_KEY=testly_dev_abc...
+```
+
+```bash .env.production
+TESTLY_API_KEY=testly_prod_ghi...
+```
+
+```javascript
+const apiKey = process.env.NODE_ENV === 'production'
+  ? process.env.TESTLY_API_KEY_PROD
+  : process.env.TESTLY_API_KEY_DEV;
+```
+
+---
+
+## Erros de Autenticação
+
+### 401 Unauthorized
+
+**Mensagem:**
+```json
+{
+  "error": "Invalid API Key"
+}
+```
+
+**Possíveis causas:**
+1. API Key está incorreta
+2. API Key foi regenerada
+3. API Key tem espaços ou caracteres extras
+4. Header ou query param está mal formatado
+
+**Solução:**
+
+```javascript
+// Verifique se não tem espaços
+const apiKey = process.env.TESTLY_API_KEY.trim();
+
+// Verifique se não está undefined
+if (!apiKey) {
+  throw new Error('TESTLY_API_KEY não está definida');
+}
+
+// Verifique o formato
+if (!apiKey.startsWith('testly_')) {
+  throw new Error('API Key inválida (deve começar com testly_)');
+}
+```
+
+### 403 Forbidden
+
+**Mensagem:**
+```json
+{
+  "error": "Organization does not have access to this resource"
+}
+```
+
+**Causa:** Tentando acessar experimento de outra organização
+
+**Solução:** Verifique se está usando a API Key correta para o experimento
+
+---
+
+## Rate Limits por Plano
+
+| Plano | Limite | Burst |
+|-------|--------|-------|
+| **Free** | 100 req/min | 20 req/s |
+| **Pro** | 1.000 req/min | 50 req/s |
+| **Enterprise** | Custom | Custom |
+
+### Headers de Rate Limit
+
+Toda resposta inclui:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
+### Tratamento de Rate Limit
+
+```javascript
+async function callWithRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error.status === 429) {
+        const retryAfter = error.headers.get('Retry-After') || 60;
+        console.log(`Rate limited. Retrying in ${retryAfter}s...`);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+---
+
+## Teste sua Autenticação
+
+Execute este comando para verificar se sua API Key está funcionando:
+
+```bash
+curl -H "x-testly-auth: YOUR_API_KEY" \
+  "https://api.testly.com/functions/v1/get-variant?experiment_key=test&user_id=test"
+```
+
+**Sucesso (200 OK):**
+```json
+{
+  "variant_key": null,
+  "reason": "experiment_not_running"
+}
+```
+Isso é esperado se você não tem um experimento chamado "test". O importante é que **não retornou 401**.
+
+**Erro (401 Unauthorized):**
+```json
+{
+  "error": "Invalid API Key"
+}
+```
+Sua API Key está incorreta. Verifique no dashboard.
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Get Variant" icon="shuffle" href="/api-reference/get-variant">
+    Atribuir variantes aos usuários
+  </Card>
+  <Card title="Track Event" icon="chart-line" href="/api-reference/track-event">
+    Registrar impressões e conversões
+  </Card>
+  <Card title="SDK React" icon="react" href="/sdk/installation">
+    Use o SDK oficial (autenticação automática)
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Comece em 5 minutos
+  </Card>
+</CardGroup>
