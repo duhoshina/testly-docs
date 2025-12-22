@@ -93,19 +93,9 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Dashboard",
-          "href": "https://app.testly.com.br/",
-          "icon": "chart-line"
-        },
-        {
           "anchor": "Comunidade de SaaS",
           "href": "https://discord.gg/SFwdTap4",
           "icon": "discord"
-        },
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/testly/sdk-react",
-          "icon": "github"
         }
       ]
     }
