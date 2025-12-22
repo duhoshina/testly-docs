@@ -1,0 +1,450 @@
+---
+title: "GET /get-variant"
+description: "Atribui uma variante para um usuário de forma determinística"
+---
+
+## Endpoint
+
+```
+GET https://api.testly.com/functions/v1/get-variant
+```
+
+## Descrição
+
+Retorna a variante que deve ser mostrada para um usuário específico. 
+
+A atribuição é **determinística** e o mesmo `user_id` sempre receberá a mesma variante para o mesmo experimento.
+
+### Características
+
+- ✅ **Determinístico**: Mesmo usuário = mesma variante
+- ✅ **Baseado em hash**: Usa `user_id + experiment_key` para calcular
+- ✅ **Respeita traffic allocation**: Distribui usuários conforme pesos configurados
+- ✅ **Retorna null**: Se experimento não estiver rodando
+
+---
+
+## Autenticação
+
+Envie sua API Key de uma das formas:
+
+### Opção 1: Header (Recomendado)
+
+```bash
+curl https://api.testly.com/functions/v1/get-variant \
+  -H "x-testly-auth: YOUR_API_KEY" \
+  -G \
+  --data-urlencode "experiment_key=homepage-hero-test" \
+  --data-urlencode "user_id=user_123"
+```
+
+### Opção 2: Query Parameter
+
+```bash
+curl "https://api.testly.com/functions/v1/get-variant?experiment_key=homepage-hero-test&user_id=user_123&apikey=YOUR_API_KEY"
+```
+
+<Warning>
+  **Segurança**: Sempre use o header `x-testly-auth` em produção. Query parameters podem aparecer em logs.
+</Warning>
+
+---
+
+## Parâmetros
+
+### Query Parameters
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `experiment_key` | `string` | ✅ Sim | Identificador único do experimento |
+| `user_id` | `string` | ✅ Sim | Identificador único do usuário (anônimo ou autenticado) |
+
+### Headers
+
+| Header | Tipo | Obrigatório | Descrição |
+|--------|------|-------------|-----------|
+| `x-testly-auth` | `string` | ✅ Sim* | Sua API Key (* ou via query param `apikey`) |
+
+---
+
+## Resposta
+
+### Sucesso (200 OK)
+
+```json
+{
+  "variant_key": "variant-b",
+  "variant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "experiment_id": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `variant_key` | `string` | Chave da variante atribuída (ex: `control`, `variant-b`) |
+| `variant_id` | `string` | UUID da variante |
+| `experiment_id` | `string` | UUID do experimento |
+
+### Experimento Não Rodando (200 OK)
+
+```json
+{
+  "variant_key": null,
+  "reason": "experiment_not_running"
+}
+```
+
+**Quando acontece:**
+- Experimento está pausado ou inativo
+- Experimento não existe
+- Experimento foi deletado
+
+<Note>
+  Quando `variant_key` for `null`, implemente um **fallback** para mostrar a versão padrão do seu componente.
+</Note>
+
+### Sem Variantes Configuradas (200 OK)
+
+```json
+{
+  "variant_key": null,
+  "reason": "no_variants"
+}
+```
+
+### Erro: Parâmetros Faltando (400 Bad Request)
+
+```json
+{
+  "error": "Missing params or auth",
+  "details": {
+    "experimentKey": false,
+    "userId": true,
+    "apiKey": true
+  }
+}
+```
+
+### Erro: API Key Inválida (401 Unauthorized)
+
+```json
+{
+  "error": "Invalid API Key"
+}
+```
+
+---
+
+## Exemplos
+
+### JavaScript / Fetch
+
+```javascript
+async function getVariant(experimentKey, userId) {
+  const response = await fetch(
+    `https://api.testly.com/functions/v1/get-variant?experiment_key=${experimentKey}&user_id=${userId}`,
+    {
+      headers: {
+        'x-testly-auth': 'YOUR_API_KEY'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+// Uso
+const result = await getVariant('homepage-hero-test', 'user_123');
+console.log('Variante:', result.variant_key);
+```
+
+### Python
+
+```python
+import requests
+
+def get_variant(experiment_key, user_id, api_key):
+    response = requests.get(
+        'https://api.testly.com/functions/v1/get-variant',
+        params={
+            'experiment_key': experiment_key,
+            'user_id': user_id
+        },
+        headers={
+            'x-testly-auth': api_key
+        }
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Uso
+result = get_variant('homepage-hero-test', 'user_123', 'YOUR_API_KEY')
+print(f"Variante: {result['variant_key']}")
+```
+
+### PHP
+
+```php
+<?php
+function getVariant($experimentKey, $userId, $apiKey) {
+    $url = 'https://api.testly.com/functions/v1/get-variant?' . http_build_query([
+        'experiment_key' => $experimentKey,
+        'user_id' => $userId
+    ]);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "x-testly-auth: $apiKey"
+    ]);
+    
+    $response = curl_exec($ch);
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($statusCode !== 200) {
+        throw new Exception("HTTP $statusCode: $response");
+    }
+    
+    return json_decode($response, true);
+}
+
+// Uso
+$result = getVariant('homepage-hero-test', 'user_123', 'YOUR_API_KEY');
+echo "Variante: " . $result['variant_key'];
+?>
+```
+
+### cURL
+
+```bash
+# Com header (recomendado)
+curl -H "x-testly-auth: YOUR_API_KEY" \
+  "https://api.testly.com/functions/v1/get-variant?experiment_key=homepage-hero-test&user_id=user_123"
+
+# Com query param
+curl "https://api.testly.com/functions/v1/get-variant?experiment_key=homepage-hero-test&user_id=user_123&apikey=YOUR_API_KEY"
+```
+
+---
+
+## Como Funciona
+
+### 1. Validação
+
+O endpoint valida:
+- ✅ API Key existe e pertence a uma organização ativa
+- ✅ Experimento existe e pertence à organização
+- ✅ Experimento está com status `running`
+- ✅ Experimento tem variantes configuradas
+
+### 2. Atribuição Determinística
+
+```
+hash = soma dos char codes de (user_id + experiment_key)
+total_weight = soma de todos os traffic_weights das variantes
+bucket = hash % total_weight
+
+Exemplo:
+user_id = "user_123"
+experiment_key = "homepage-hero"
+hash = 1234 (calculado)
+total_weight = 100 (50 + 50)
+bucket = 1234 % 100 = 34
+
+Se bucket < 50 → Variante A
+Se bucket >= 50 → Variante B
+```
+
+**Resultado**: O mesmo usuário sempre cai no mesmo bucket.
+
+### 3. Cache Recomendado
+
+Como a atribuição é determinística, você pode (e deve) cachear o resultado:
+
+```javascript
+// Cache em memória
+const variantCache = new Map();
+
+async function getVariantCached(experimentKey, userId) {
+  const cacheKey = `${experimentKey}:${userId}`;
+  
+  if (variantCache.has(cacheKey)) {
+    return variantCache.get(cacheKey);
+  }
+  
+  const result = await getVariant(experimentKey, userId);
+  variantCache.set(cacheKey, result);
+  
+  return result;
+}
+```
+
+---
+
+## Casos de Uso
+
+### Server-Side Rendering (SSR)
+
+```javascript
+// Next.js App Router
+export async function generateMetadata({ params }) {
+  const userId = cookies().get('user_id')?.value || 'anonymous';
+  
+  const { variant_key } = await getVariant('homepage-hero', userId);
+  
+  return {
+    title: variant_key === 'variant-b' 
+      ? 'Experimente Agora - Testly'
+      : 'Comece Grátis - Testly'
+  };
+}
+```
+
+### API Gateway / Middleware
+
+```javascript
+// Express.js middleware
+app.use(async (req, res, next) => {
+  const userId = req.cookies.user_id || 'anonymous';
+  
+  try {
+    const { variant_key } = await getVariant('pricing-test', userId);
+    req.testlyVariant = variant_key;
+  } catch (error) {
+    console.error('Testly error:', error);
+    req.testlyVariant = null; // Fallback
+  }
+  
+  next();
+});
+
+app.get('/pricing', (req, res) => {
+  if (req.testlyVariant === 'variant-b') {
+    res.render('pricing-3-col');
+  } else {
+    res.render('pricing-2-col');
+  }
+});
+```
+
+### Edge Functions (Vercel/Cloudflare)
+
+```javascript
+// Vercel Edge Function
+export const config = { runtime: 'edge' };
+
+export default async function handler(req) {
+  const userId = req.cookies.get('user_id') || 'anonymous';
+  
+  const { variant_key } = await getVariant('homepage-hero', userId);
+  
+  return new Response(JSON.stringify({ variant: variant_key }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+```
+
+---
+
+## Erros Comuns
+
+### Erro: "Invalid API Key"
+
+**Causa:** API Key não existe ou está incorreta
+
+**Solução:**
+1. Verifique a key no [dashboard](https://testly.com/dashboard)
+2. Certifique-se que está usando a key da organização correta
+3. Verifique se não tem espaços extras na key
+
+### Erro: "experiment_not_running"
+
+**Causa:** Experimento não está ativo
+
+**Solução:**
+1. Acesse o dashboard
+2. Verifique se o experimento está com status "Running"
+3. Se estiver pausado, ative-o
+
+### Erro: "no_variants"
+
+**Causa:** Experimento não tem variantes configuradas
+
+**Solução:**
+1. Acesse o experimento no dashboard
+2. Crie pelo menos 2 variantes (controle + teste)
+3. Configure os pesos de tráfego
+
+### Timeout / Sem resposta
+
+**Causa:** Rede lenta ou API temporariamente indisponível
+
+**Solução:**
+```javascript
+async function getVariantWithTimeout(experimentKey, userId, timeout = 3000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'x-testly-auth': apiKey }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Timeout ou erro:', error);
+    return { variant_key: null }; // Fallback
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+---
+
+## Rate Limits
+
+| Plano | Limite |
+|-------|--------|
+| **Free** | 100 req/min |
+| **Pro** | 1.000 req/min |
+| **Enterprise** | Customizável |
+
+**Headers de resposta:**
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
+Se exceder:
+```json
+{
+  "error": "Rate limit exceeded",
+  "retry_after": 60
+}
+```
+
+---
+
+## Próximos Passos
+
+<CardGroup cols={2}>
+  <Card title="Track Event" icon="chart-line" href="/api-reference/track-event">
+    Registre impressões e conversões
+  </Card>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Detalhes sobre API Keys
+  </Card>
+  <Card title="SDK React" icon="react" href="/sdk/installation">
+    Use o SDK oficial (recomendado)
+  </Card>
+  <Card title="Exemplos" icon="code" href="/examples/hero-section">
+    Veja implementações completas
+  </Card>
+</CardGroup>
