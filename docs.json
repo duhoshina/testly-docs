@@ -21,7 +21,7 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Acessar Plataforma",
+      "label": "Entrar",
       "href": "https://app.testly.com.br/?utm_source=testly_docs&utm_campaign=navbar&utm_content=primary-btn"
     }
   },
