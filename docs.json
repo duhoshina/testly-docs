@@ -38,7 +38,7 @@
             ]
           },
           {
-            "group": "React SDK",
+            "group": "SDK",
             "pages": [
               "sdk/installation",
               "sdk/use-experiment",
