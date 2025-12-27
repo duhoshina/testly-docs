@@ -31,22 +31,22 @@ Escolha seu gerenciador de pacotes preferido:
 <Tabs>
   <Tab title="npm">
     ```bash
-    npm install @testly/react
+    npm install @testlyjs/react
     ```
   </Tab>
   <Tab title="yarn">
     ```bash
-    yarn add @testly/react
+    yarn add @testlyjs/react
     ```
   </Tab>
   <Tab title="pnpm">
     ```bash
-    pnpm add @testly/react
+    pnpm add @testlyjs/react
     ```
   </Tab>
   <Tab title="bun">
     ```bash
-    bun add @testly/react
+    bun add @testlyjs/react
     ```
   </Tab>
 </Tabs>
@@ -62,7 +62,7 @@ Ele gerencia o estado dos experimentos e se comunica com a API do Testly.
 <Tabs>
   <Tab title="React (Vite/CRA)">
     ```tsx src/App.tsx
-    import { TestlyProvider } from '@testly/react';
+    import { TestlyProvider } from '@testlyjs/react';
     
     function App() {
       return (
@@ -83,7 +83,7 @@ Ele gerencia o estado dos experimentos e se comunica com a API do Testly.
   </Tab>
   <Tab title="Next.js App Router">
     ```tsx app/layout.tsx
-    import { TestlyProvider } from '@testly/react';
+    import { TestlyProvider } from '@testlyjs/react';
     
     export default function RootLayout({
       children,
@@ -111,7 +111,7 @@ Ele gerencia o estado dos experimentos e se comunica com a API do Testly.
   <Tab title="Next.js Pages Router">
     ```tsx pages/_app.tsx
     import type { AppProps } from 'next/app';
-    import { TestlyProvider } from '@testly/react';
+    import { TestlyProvider } from '@testlyjs/react';
     
     export default function App({ Component, pageProps }: AppProps) {
       return (
@@ -130,7 +130,7 @@ Ele gerencia o estado dos experimentos e se comunica com a API do Testly.
   </Tab>
   <Tab title="Remix">
     ```tsx app/root.tsx
-    import { TestlyProvider } from '@testly/react';
+    import { TestlyProvider } from '@testlyjs/react';
     
     export default function App() {
       return (
