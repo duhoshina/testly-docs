@@ -71,7 +71,7 @@ Se você tem um produto rodando, usuários ativos e quer entender o que converte
     Adicione o Testly ao seu projeto React:
 
     ```bash
-    npm install @testly/react
+    npm i @testlyjs/react
     ```
   </Step>
   <Step title="Configure o Provider">
@@ -93,7 +93,7 @@ Se você tem um produto rodando, usuários ativos e quer entender o que converte
     Use o hook useExperiment para renderizar variantes:
 
     ```tsx
-    import { useExperiment } from '@testly/react';
+    import { useExperiment } from '@testlyjs/react';
     
     export function HeroBanner() {
       const { variant, convert } = useExperiment('homepage-hero-v2');
@@ -216,7 +216,7 @@ const { convert } = useExperiment('pricing-test');
 
 <Accordion title="Exemplo de conversão global">
   ```tsx
-  import { useConversion } from '@testly/react';
+  import { useConversion } from '@testlyjs/react';
   
   function CheckoutButton() {
     const trackGlobal = useConversion();
@@ -435,7 +435,7 @@ Pronto para começar? Siga estes passos:
   </Step>
   <Step title="Instale o SDK">
     ```bash
-    npm install @testly/react
+    npm install @testlyjs/react
     ```
   </Step>
   <Step title="Configure seu primeiro experimento">
